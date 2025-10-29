@@ -9,6 +9,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ProcessSensorData implements ShouldQueue
 {
@@ -29,9 +31,9 @@ class ProcessSensorData implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info('Iniciando processamento dos dados do sensor', [
+            Log::info('Iniciando processamento do lote de dados dos sensores', [
                 'file' => $this->tempFilePath,
-                'timestamp' => $this->sensorData['timestamp']
+                'total_records' => is_array($this->sensorData) ? count($this->sensorData) : 1
             ]);
 
             if (!Storage::exists($this->tempFilePath)) {
@@ -39,31 +41,61 @@ class ProcessSensorData implements ShouldQueue
             }
 
             $fileContent = Storage::get($this->tempFilePath);
-            $data = json_decode($fileContent, true);
+            $dataArray = json_decode($fileContent, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \Exception('Erro ao decodificar JSON: ' . json_last_error_msg());
             }
 
-            $this->processTemperature($data['temperature']);
-            $this->processHumidity($data['humidity']);
-            $this->processAirQuality($data['eco2'], $data['tvoc']);
-            $this->processNoise($data['noise']);
-            $this->processPressure($data['pression']);
+            if (!is_array($dataArray)) {
+                throw new \Exception('Dados devem ser um array de objetos');
+            }
 
-            $processedPath = 'processed/' . basename($this->tempFilePath);
-            Storage::put($processedPath, $fileContent);
+            DB::transaction(function () use ($dataArray) {
+                $temperatureData = [];
+                $humidityData = [];
+                $noiseData = [];
+                $pressureData = [];
+                $eco2Data = [];
+                $tvocData = [];
+
+                foreach ($dataArray as $data) {
+                    $timestamp = Carbon::parse($data['timestamp']);
+
+                    $temperatureData[] = ['value' => $data['temperature'], 'timestamp' => $timestamp];
+                    $humidityData[] = ['value' => $data['humidity'], 'timestamp' => $timestamp];
+                    $noiseData[] = ['value' => $data['noise'], 'timestamp' => $timestamp];
+                    $pressureData[] = ['value' => $data['pression'], 'timestamp' => $timestamp];
+                    $eco2Data[] = ['value' => $data['eco2'], 'timestamp' => $timestamp];
+                    $tvocData[] = ['value' => $data['tvoc'], 'timestamp' => $timestamp];
+                }
+
+                DB::table('s_temperature')->insert($temperatureData);
+                DB::table('s_humidity')->insert($humidityData);
+                DB::table('s_noise')->insert($noiseData);
+                DB::table('s_pressure')->insert($pressureData);
+                DB::table('s_eco2')->insert($eco2Data);
+                DB::table('s_tvoc')->insert($tvocData);
+
+                Log::info('Lote processado com sucesso', [
+                    'total_records' => count($dataArray),
+                    'tables_updated' => 6
+                ]);
+            });
+
+            foreach ($dataArray as $data) {
+                $this->processAlerts($data);
+            }
 
             Storage::delete($this->tempFilePath);
 
-            Log::info('Processamento dos dados do sensor concluído com sucesso', [
-                'file_moved_to' => $processedPath,
-                'temperature' => $data['temperature'],
-                'humidity' => $data['humidity']
+            Log::info('Processamento do lote de dados dos sensores concluído com sucesso', [
+                'file_deleted' => $this->tempFilePath,
+                'total_records_processed' => count($dataArray)
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro no processamento dos dados do sensor', [
+            Log::error('Erro no processamento do lote de dados dos sensores', [
                 'file' => $this->tempFilePath,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -73,60 +105,25 @@ class ProcessSensorData implements ShouldQueue
         }
     }
 
-    private function processTemperature(float $temperature): void
+    private function processAlerts(array $data): void
     {
-        if ($temperature < 18 || $temperature > 24) {
-            Log::warning('Temperatura fora da faixa ideal', [
-                'temperature' => $temperature,
-                'ideal_range' => '18-24°C'
-            ]);
+        if ($data['temperature'] < 18 || $data['temperature'] > 24) {
+            Log::warning('Temperatura fora da faixa', ['temp' => $data['temperature']]);
         }
-    }
-
-    private function processHumidity(float $humidity): void
-    {
-        if ($humidity < 30 || $humidity > 60) {
-            Log::warning('Umidade fora da faixa ideal', [
-                'humidity' => $humidity,
-                'ideal_range' => '30-60%'
-            ]);
+        if ($data['humidity'] < 30 || $data['humidity'] > 60) {
+            Log::warning('Umidade fora da faixa', ['humidity' => $data['humidity']]);
         }
-    }
-
-    private function processAirQuality(int $eco2, int $tvoc): void
-    {
-        if ($eco2 > 1000) {
-            Log::warning('Níveis de CO2 elevados', [
-                'eco2' => $eco2,
-                'threshold' => 1000
-            ]);
+        if ($data['eco2'] > 1000) {
+            Log::warning('CO2 elevado', ['eco2' => $data['eco2']]);
         }
-
-        if ($tvoc > 220) {
-            Log::warning('Níveis de TVOC elevados', [
-                'tvoc' => $tvoc,
-                'threshold' => 220
-            ]);
+        if ($data['tvoc'] > 220) {
+            Log::warning('TVOC elevado', ['tvoc' => $data['tvoc']]);
         }
-    }
-
-    private function processNoise(float $noise): void
-    {
-        if ($noise > 45) {
-            Log::warning('Níveis de ruído elevados', [
-                'noise' => $noise,
-                'threshold' => 45
-            ]);
+        if ($data['noise'] > 45) {
+            Log::warning('Ruído elevado', ['noise' => $data['noise']]);
         }
-    }
-
-    private function processPressure(float $pressure): void
-    {
-        if ($pressure < 963 || $pressure > 1063) {
-            Log::info('Pressão atmosférica fora da faixa normal', [
-                'pressure' => $pressure,
-                'normal_range' => '963-1063 hPa'
-            ]);
+        if ($data['pression'] < 963 || $data['pression'] > 1063) {
+            Log::info('Pressão anormal', ['pressure' => $data['pression']]);
         }
     }
 
@@ -141,6 +138,11 @@ class ProcessSensorData implements ShouldQueue
         if (Storage::exists($this->tempFilePath)) {
             $errorPath = 'errors/' . basename($this->tempFilePath);
             Storage::move($this->tempFilePath, $errorPath);
+
+            Log::info('Arquivo movido para pasta de erros', [
+                'original_path' => $this->tempFilePath,
+                'error_path' => $errorPath
+            ]);
         }
     }
 }
