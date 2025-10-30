@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -98,16 +97,11 @@ return [
 
     'fallback_locale' => 'en',
 
-    /*
-    |--------------------------------------------------------------------------
-    | Faker Locale
-    |--------------------------------------------------------------------------
-    |
-    | This locale will be used by the Faker PHP library when generating fake
-    | data for your database seeds. For example, this will be used to get
-    | localized telephone numbers, street address information and more.
-    |
-    */
+    'api_keys' => [
+        env('API_KEY_1'),
+        env('API_KEY_2'),
+        env('API_KEY_3'),
+    ],
 
     'faker_locale' => 'en_US',
 
