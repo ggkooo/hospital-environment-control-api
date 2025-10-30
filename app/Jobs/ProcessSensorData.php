@@ -19,8 +19,8 @@ class ProcessSensorData implements ShouldQueue
     public $tries = 3;
     public $timeout = 120;
 
-    protected $tempFilePath;
-    protected $sensorData;
+    protected string $tempFilePath;
+    protected array $sensorData;
 
     public function __construct(string $tempFilePath, array $sensorData)
     {
@@ -33,98 +33,251 @@ class ProcessSensorData implements ShouldQueue
         try {
             Log::info('Iniciando processamento do lote de dados dos sensores', [
                 'file' => $this->tempFilePath,
-                'total_records' => is_array($this->sensorData) ? count($this->sensorData) : 1
+                'total_records' => count($this->sensorData)
             ]);
 
             if (!Storage::exists($this->tempFilePath)) {
                 throw new \Exception("Arquivo temporário não encontrado: {$this->tempFilePath}");
             }
 
-            $fileContent = Storage::get($this->tempFilePath);
-            $dataArray = json_decode($fileContent, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception('Erro ao decodificar JSON: ' . json_last_error_msg());
-            }
-
-            if (!is_array($dataArray)) {
-                throw new \Exception('Dados devem ser um array de objetos');
-            }
+            $dataArray = $this->loadAndValidateData();
 
             DB::transaction(function () use ($dataArray) {
-                $temperatureData = [];
-                $humidityData = [];
-                $noiseData = [];
-                $pressureData = [];
-                $eco2Data = [];
-                $tvocData = [];
-
-                foreach ($dataArray as $data) {
-                    $timestamp = Carbon::parse($data['timestamp']);
-
-                    $temperatureData[] = ['value' => $data['temperature'], 'timestamp' => $timestamp];
-                    $humidityData[] = ['value' => $data['humidity'], 'timestamp' => $timestamp];
-                    $noiseData[] = ['value' => $data['noise'], 'timestamp' => $timestamp];
-                    $pressureData[] = ['value' => $data['pression'], 'timestamp' => $timestamp];
-                    $eco2Data[] = ['value' => $data['eco2'], 'timestamp' => $timestamp];
-                    $tvocData[] = ['value' => $data['tvoc'], 'timestamp' => $timestamp];
-                }
-
-                DB::table('s_temperature')->insert($temperatureData);
-                DB::table('s_humidity')->insert($humidityData);
-                DB::table('s_noise')->insert($noiseData);
-                DB::table('s_pressure')->insert($pressureData);
-                DB::table('s_eco2')->insert($eco2Data);
-                DB::table('s_tvoc')->insert($tvocData);
-
-                Log::info('Lote processado com sucesso', [
-                    'total_records' => count($dataArray),
-                    'tables_updated' => 6
-                ]);
+                $this->saveRawData($dataArray);
+                $this->processMinuteAggregates($dataArray);
             });
 
-            foreach ($dataArray as $data) {
-                $this->processAlerts($data);
-            }
-
+            $this->processAlerts($dataArray);
             Storage::delete($this->tempFilePath);
 
-            Log::info('Processamento do lote de dados dos sensores concluído com sucesso', [
+            Log::info('Processamento concluído com sucesso', [
                 'file_deleted' => $this->tempFilePath,
                 'total_records_processed' => count($dataArray)
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Erro no processamento do lote de dados dos sensores', [
+            Log::error('Erro no processamento dos dados dos sensores', [
                 'file' => $this->tempFilePath,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
             throw $e;
         }
     }
 
-    private function processAlerts(array $data): void
+    private function loadAndValidateData(): array
     {
-        if ($data['temperature'] < 18 || $data['temperature'] > 24) {
-            Log::warning('Temperatura fora da faixa', ['temp' => $data['temperature']]);
+        $fileContent = Storage::get($this->tempFilePath);
+        $dataArray = json_decode($fileContent, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Exception('Erro ao decodificar JSON: ' . json_last_error_msg());
         }
-        if ($data['humidity'] < 30 || $data['humidity'] > 60) {
-            Log::warning('Umidade fora da faixa', ['humidity' => $data['humidity']]);
+
+        if (!is_array($dataArray)) {
+            throw new \Exception('Dados devem ser um array de objetos');
         }
-        if ($data['eco2'] > 1000) {
-            Log::warning('CO2 elevado', ['eco2' => $data['eco2']]);
+
+        return $dataArray;
+    }
+
+    private function saveRawData(array $dataArray): void
+    {
+        $batchData = [
+            'temperature' => [],
+            'humidity' => [],
+            'noise' => [],
+            'pressure' => [],
+            'eco2' => [],
+            'tvoc' => []
+        ];
+
+        foreach ($dataArray as $data) {
+            $timestamp = Carbon::parse($data['timestamp']);
+            $batchData['temperature'][] = ['value' => $data['temperature'], 'timestamp' => $timestamp];
+            $batchData['humidity'][] = ['value' => $data['humidity'], 'timestamp' => $timestamp];
+            $batchData['noise'][] = ['value' => $data['noise'], 'timestamp' => $timestamp];
+            $batchData['pressure'][] = ['value' => $data['pression'], 'timestamp' => $timestamp];
+            $batchData['eco2'][] = ['value' => $data['eco2'], 'timestamp' => $timestamp];
+            $batchData['tvoc'][] = ['value' => $data['tvoc'], 'timestamp' => $timestamp];
         }
-        if ($data['tvoc'] > 220) {
-            Log::warning('TVOC elevado', ['tvoc' => $data['tvoc']]);
+
+        foreach ($batchData as $sensorType => $data) {
+            DB::table("s_{$sensorType}")->insert($data);
         }
-        if ($data['noise'] > 45) {
-            Log::warning('Ruído elevado', ['noise' => $data['noise']]);
+
+        Log::info('Dados brutos salvos com sucesso', [
+            'total_records' => count($dataArray),
+            'tables_updated' => count($batchData)
+        ]);
+    }
+
+    private function processMinuteAggregates(array $dataArray): void
+    {
+        $minuteGroups = $this->groupDataByMinute($dataArray);
+
+        foreach ($minuteGroups as $minuteTimestamp => $sensors) {
+            foreach (['temperature', 'humidity', 'noise', 'pressure', 'eco2', 'tvoc'] as $sensorType) {
+                if (!empty($sensors[$sensorType])) {
+                    $this->saveMinuteData($sensorType, $sensors[$sensorType], $minuteTimestamp);
+                }
+            }
         }
-        if ($data['pression'] < 963 || $data['pression'] > 1063) {
-            Log::info('Pressão anormal', ['pressure' => $data['pression']]);
+
+        Log::info('Dados agregados por minuto processados', [
+            'minutes_processed' => count($minuteGroups)
+        ]);
+    }
+
+    private function groupDataByMinute(array $dataArray): array
+    {
+        $minuteGroups = [];
+
+        foreach ($dataArray as $data) {
+            $minuteKey = Carbon::parse($data['timestamp'])->format('Y-m-d H:i:00');
+
+            if (!isset($minuteGroups[$minuteKey])) {
+                $minuteGroups[$minuteKey] = [
+                    'temperature' => [],
+                    'humidity' => [],
+                    'noise' => [],
+                    'pressure' => [],
+                    'eco2' => [],
+                    'tvoc' => []
+                ];
+            }
+
+            $minuteGroups[$minuteKey]['temperature'][] = $data['temperature'];
+            $minuteGroups[$minuteKey]['humidity'][] = $data['humidity'];
+            $minuteGroups[$minuteKey]['noise'][] = $data['noise'];
+            $minuteGroups[$minuteKey]['pressure'][] = $data['pression'];
+            $minuteGroups[$minuteKey]['eco2'][] = $data['eco2'];
+            $minuteGroups[$minuteKey]['tvoc'][] = $data['tvoc'];
         }
+
+        return $minuteGroups;
+    }
+
+    private function saveMinuteData(string $sensorType, array $values, string $minuteTimestamp): void
+    {
+        $existing = DB::table("m_{$sensorType}")
+            ->where('minute_timestamp', $minuteTimestamp)
+            ->first();
+
+        if ($existing) {
+            Log::info("Dados do minuto já existem para {$sensorType}", ['minute' => $minuteTimestamp]);
+            return;
+        }
+
+        $stats = $this->calculateStatistics($values);
+
+        DB::table("m_{$sensorType}")->insert([
+            'avg_value' => round($stats['average'], 2),
+            'min_value' => $stats['minimum'],
+            'max_value' => $stats['maximum'],
+            'std_dev' => round($stats['std_dev'], 4),
+            'reading_count' => count($values),
+            'variation_range' => round($stats['range'], 2),
+            'minute_timestamp' => $minuteTimestamp
+        ]);
+
+        $this->checkForAbruptVariations($sensorType, $stats, $minuteTimestamp);
+    }
+
+    private function calculateStatistics(array $values): array
+    {
+        $count = count($values);
+        $sum = array_sum($values);
+        $average = $sum / $count;
+        $minimum = min($values);
+        $maximum = max($values);
+
+        $variance = 0;
+        foreach ($values as $value) {
+            $variance += pow($value - $average, 2);
+        }
+        $stdDev = $count > 1 ? sqrt($variance / ($count - 1)) : 0;
+
+        return [
+            'average' => $average,
+            'minimum' => $minimum,
+            'maximum' => $maximum,
+            'std_dev' => $stdDev,
+            'range' => $maximum - $minimum
+        ];
+    }
+
+    private function checkForAbruptVariations(string $sensorType, array $stats, string $minuteTimestamp): void
+    {
+        $thresholds = $this->getVariationThresholds()[$sensorType] ?? null;
+
+        if (!$thresholds) {
+            return;
+        }
+
+        if ($stats['range'] > $thresholds['range']) {
+            Log::warning("Variação brusca detectada - {$sensorType}", [
+                'minute' => $minuteTimestamp,
+                'range' => $stats['range'],
+                'threshold' => $thresholds['range'],
+                'min_value' => $stats['minimum'],
+                'max_value' => $stats['maximum'],
+                'avg_value' => round($stats['average'], 2)
+            ]);
+        }
+
+        if ($stats['std_dev'] > $thresholds['std_dev']) {
+            Log::warning("Alto desvio padrão detectado - {$sensorType}", [
+                'minute' => $minuteTimestamp,
+                'std_dev' => round($stats['std_dev'], 4),
+                'threshold' => $thresholds['std_dev'],
+                'avg_value' => round($stats['average'], 2)
+            ]);
+        }
+    }
+
+    private function processAlerts(array $dataArray): void
+    {
+        foreach ($dataArray as $data) {
+            $this->checkSensorThresholds($data);
+        }
+    }
+
+    private function checkSensorThresholds(array $data): void
+    {
+        $thresholds = [
+            'temperature' => ['min' => 18, 'max' => 24],
+            'humidity' => ['min' => 30, 'max' => 60],
+            'eco2' => ['max' => 1000],
+            'tvoc' => ['max' => 220],
+            'noise' => ['max' => 45],
+            'pression' => ['min' => 963, 'max' => 1063]
+        ];
+
+        foreach ($thresholds as $sensor => $limits) {
+            $value = $data[$sensor] ?? null;
+            if ($value === null) continue;
+
+            if (isset($limits['min']) && $value < $limits['min']) {
+                Log::warning("{$sensor} abaixo do limite", [$sensor => $value, 'limit' => $limits['min']]);
+            }
+
+            if (isset($limits['max']) && $value > $limits['max']) {
+                Log::warning("{$sensor} acima do limite", [$sensor => $value, 'limit' => $limits['max']]);
+            }
+        }
+    }
+
+    private function getVariationThresholds(): array
+    {
+        return [
+            'temperature' => ['range' => 3.0, 'std_dev' => 1.5],
+            'humidity' => ['range' => 10.0, 'std_dev' => 5.0],
+            'noise' => ['range' => 15.0, 'std_dev' => 8.0],
+            'pressure' => ['range' => 5.0, 'std_dev' => 2.0],
+            'eco2' => ['range' => 100.0, 'std_dev' => 50.0],
+            'tvoc' => ['range' => 50.0, 'std_dev' => 25.0]
+        ];
     }
 
     public function failed(\Throwable $exception): void
