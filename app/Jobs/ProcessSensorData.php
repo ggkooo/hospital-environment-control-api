@@ -48,6 +48,10 @@ class ProcessSensorData implements ShouldQueue
             });
 
             $this->processAlerts($dataArray);
+
+            // Verifica e dispara processamento de hora completa se necessário
+            $this->checkAndTriggerHourlyProcessing($dataArray);
+
             Storage::delete($this->tempFilePath);
 
             Log::info('Processamento concluído com sucesso', [
@@ -278,6 +282,93 @@ class ProcessSensorData implements ShouldQueue
             'eco2' => ['range' => 100.0, 'std_dev' => 50.0],
             'tvoc' => ['range' => 50.0, 'std_dev' => 25.0]
         ];
+    }
+
+    private function checkAndTriggerHourlyProcessing(array $dataArray): void
+    {
+        if (empty($dataArray)) {
+            return;
+        }
+
+        // Obtém as horas únicas dos dados processados
+        $hoursProcessed = [];
+        foreach ($dataArray as $data) {
+            $hour = Carbon::parse($data['timestamp'])->format('Y-m-d H:00:00');
+            $hoursProcessed[$hour] = true;
+        }
+
+        // Para cada hora processada, verifica se está completa
+        foreach (array_keys($hoursProcessed) as $hourTimestamp) {
+            if ($this->isHourComplete($hourTimestamp)) {
+                $this->dispatchHourlyProcessing($hourTimestamp);
+            }
+        }
+    }
+
+    private function isHourComplete(string $hourTimestamp): bool
+    {
+        $hour = Carbon::parse($hourTimestamp);
+        $nextHour = $hour->copy()->addHour();
+
+        // Verifica se já existe dados agregados para esta hora
+        if ($this->hourlyDataExists($hourTimestamp)) {
+            return false;
+        }
+
+        // Verifica se temos pelo menos 50 minutos de dados (permite tolerância)
+        $minMinutesRequired = 50;
+        $sensorTypes = ['temperature', 'humidity', 'noise', 'pressure', 'eco2', 'tvoc'];
+
+        foreach ($sensorTypes as $sensorType) {
+            $minuteCount = DB::table("m_{$sensorType}")
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:i:s'))
+                ->where('minute_timestamp', '<', $nextHour->format('Y-m-d H:i:s'))
+                ->count();
+
+            if ($minuteCount < $minMinutesRequired) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function hourlyDataExists(string $hourTimestamp): bool
+    {
+        $sensorTypes = ['temperature', 'humidity', 'noise', 'pressure', 'eco2', 'tvoc'];
+
+        foreach ($sensorTypes as $sensorType) {
+            $exists = DB::table("h_{$sensorType}")
+                ->where('hour_timestamp', $hourTimestamp)
+                ->exists();
+
+            if ($exists) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function dispatchHourlyProcessing(string $hourTimestamp): void
+    {
+        try {
+            // Importa a classe do Job de agregação por hora
+            $hourlyJobClass = \App\Jobs\ProcessHourlyAggregation::class;
+
+            // Dispatch do job para processar esta hora
+            $hourlyJobClass::dispatch($hourTimestamp);
+
+            Log::info('Job de agregação por hora disparado automaticamente', [
+                'hour' => $hourTimestamp,
+                'triggered_by' => 'ProcessSensorData'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao disparar job de agregação por hora', [
+                'hour' => $hourTimestamp,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     public function failed(\Throwable $exception): void
