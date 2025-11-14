@@ -120,16 +120,41 @@ class ProcessSensorData implements ShouldQueue
     {
         $minuteGroups = $this->groupDataByMinute($dataArray);
 
+        $processedMinutes = 0;
+        $ignoredMinutes = 0;
+
         foreach ($minuteGroups as $minuteTimestamp => $sensors) {
+            $minuteProcessed = false;
+
             foreach (['temperature', 'humidity', 'noise', 'pressure', 'eco2', 'tvoc'] as $sensorType) {
                 if (!empty($sensors[$sensorType])) {
-                    $this->saveMinuteData($sensorType, $sensors[$sensorType], $minuteTimestamp);
+                    // Verifica se tem exatamente 12 leituras antes de processar
+                    if (count($sensors[$sensorType]) === 12) {
+                        $this->saveMinuteData($sensorType, $sensors[$sensorType], $minuteTimestamp);
+                        $minuteProcessed = true;
+                    } else {
+                        Log::info("Minuto ignorado por dados incompletos - {$sensorType}", [
+                            'minute' => $minuteTimestamp,
+                            'expected_readings' => 12,
+                            'actual_readings' => count($sensors[$sensorType]),
+                            'status' => 'IGNORADO'
+                        ]);
+                    }
                 }
+            }
+
+            if ($minuteProcessed) {
+                $processedMinutes++;
+            } else {
+                $ignoredMinutes++;
             }
         }
 
-        Log::info('Dados agregados por minuto processados', [
-            'minutes_processed' => count($minuteGroups)
+        Log::info('Agregação por minuto concluída', [
+            'total_minutes_found' => count($minuteGroups),
+            'minutes_processed' => $processedMinutes,
+            'minutes_ignored' => $ignoredMinutes,
+            'success_rate' => round(($processedMinutes / count($minuteGroups)) * 100, 1) . '%'
         ]);
     }
 
@@ -164,6 +189,21 @@ class ProcessSensorData implements ShouldQueue
 
     private function saveMinuteData(string $sensorType, array $values, string $minuteTimestamp): void
     {
+        // VALIDAÇÃO RIGOROSA: Verificar se tem exatamente 12 leituras no minuto
+        $expectedReadings = 12; // 12 leituras por minuto (uma a cada 5 segundos)
+        $actualReadings = count($values);
+
+        if ($actualReadings !== $expectedReadings) {
+            Log::info("Dados insuficientes para minuto - {$sensorType}", [
+                'minute' => $minuteTimestamp,
+                'expected_readings' => $expectedReadings,
+                'actual_readings' => $actualReadings,
+                'coverage_percentage' => round(($actualReadings / $expectedReadings) * 100, 1) . '%',
+                'status' => 'IGNORADO - Dados incompletos'
+            ]);
+            return; // NÃO processa se não tiver exatamente 12 leituras
+        }
+
         $existing = DB::table("m_{$sensorType}")
             ->where('minute_timestamp', $minuteTimestamp)
             ->first();
@@ -172,6 +212,14 @@ class ProcessSensorData implements ShouldQueue
             Log::info("Dados do minuto já existem para {$sensorType}", ['minute' => $minuteTimestamp]);
             return;
         }
+
+        // APROVADO: Exatamente 12 leituras - processando minuto
+        Log::info("Minuto aprovado para processamento - {$sensorType}", [
+            'minute' => $minuteTimestamp,
+            'readings_count' => $actualReadings,
+            'quality' => 'COMPLETO',
+            'status' => 'PROCESSANDO'
+        ]);
 
         $stats = $this->calculateStatistics($values);
 
@@ -186,6 +234,13 @@ class ProcessSensorData implements ShouldQueue
         ]);
 
         $this->checkForAbruptVariations($sensorType, $stats, $minuteTimestamp);
+
+        Log::info("Minuto processado com sucesso - {$sensorType}", [
+            'minute' => $minuteTimestamp,
+            'readings_processed' => $actualReadings,
+            'avg_value' => round($stats['average'], 2),
+            'quality' => '100% de cobertura'
+        ]);
     }
 
     private function calculateStatistics(array $values): array
@@ -308,25 +363,48 @@ class ProcessSensorData implements ShouldQueue
     private function isHourComplete(string $hourTimestamp): bool
     {
         $hour = Carbon::parse($hourTimestamp);
-        $nextHour = $hour->copy()->addHour();
 
         // Verifica se já existe dados agregados para esta hora
         if ($this->hourlyDataExists($hourTimestamp)) {
             return false;
         }
 
-        // Verifica se temos pelo menos 50 minutos de dados (permite tolerância)
+        // VALIDAÇÃO RIGOROSA: Verifica se temos pelo menos 50 minutos de dados
         $minMinutesRequired = 50;
         $sensorTypes = ['temperature', 'humidity', 'noise', 'pressure', 'eco2', 'tvoc'];
 
         foreach ($sensorTypes as $sensorType) {
             $minuteCount = DB::table("m_{$sensorType}")
-                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:i:s'))
-                ->where('minute_timestamp', '<', $nextHour->format('Y-m-d H:i:s'))
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
                 ->count();
 
             if ($minuteCount < $minMinutesRequired) {
                 return false;
+            }
+
+            // VALIDAÇÃO ADICIONAL: Verificar cobertura temporal
+            $firstRecord = DB::table("m_{$sensorType}")
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
+                ->orderBy('minute_timestamp')
+                ->first();
+
+            $lastRecord = DB::table("m_{$sensorType}")
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
+                ->orderBy('minute_timestamp', 'desc')
+                ->first();
+
+            if ($firstRecord && $lastRecord) {
+                $firstMinute = Carbon::parse($firstRecord->minute_timestamp);
+                $lastMinute = Carbon::parse($lastRecord->minute_timestamp);
+                $coverageMinutes = $lastMinute->diffInMinutes($firstMinute) + 1;
+
+                // Requer pelo menos 45 minutos de cobertura contínua
+                if ($coverageMinutes < 45) {
+                    return false;
+                }
             }
         }
 
