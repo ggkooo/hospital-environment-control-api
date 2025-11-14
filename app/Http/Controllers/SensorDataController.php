@@ -498,6 +498,423 @@ class SensorDataController extends Controller
         }
     }
 
+    // DADOS AGREGADOS POR HORA
+
+    public function getAllHourlyData(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'integer|min:1|max:1000',
+            'start_date' => 'date',
+            'end_date' => 'date|after_or_equal:start_date',
+            'order' => 'in:asc,desc'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        try {
+            $sensorTypes = $this->getHourlySensorTypes();
+            $allData = [];
+
+            foreach ($sensorTypes as $type => $table) {
+                $query = DB::table($table);
+                $this->applyDateFilters($query, $request, 'hour_timestamp');
+                $query->orderBy('hour_timestamp', $request->input('order', 'desc'));
+                $allData[$type] = $query->limit($request->input('limit', 100))->get();
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'aggregation' => 'hourly',
+                'total_types' => count($sensorTypes),
+                'data' => $allData
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar dados agregados por hora', $e->getMessage());
+        }
+    }
+
+    public function getHourlyData(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'integer|min:1|max:1000',
+            'start_date' => 'date',
+            'end_date' => 'date|after_or_equal:start_date',
+            'order' => 'in:asc,desc'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $query = DB::table('h_' . $type);
+            $this->applyDateFilters($query, $request, 'hour_timestamp');
+            $query->orderBy('hour_timestamp', $request->input('order', 'desc'));
+
+            $data = $query->limit($request->input('limit', 100))->get();
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'aggregation' => 'hourly',
+                'total_records' => $data->count(),
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar dados agregados por hora', $e->getMessage());
+        }
+    }
+
+    public function getHourlyStats(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $query = DB::table('h_' . $type);
+            $this->applyDateFilters($query, $request, 'hour_timestamp');
+
+            $stats = $query->selectRaw('
+                COUNT(*) as total_hours,
+                AVG(avg_value) as overall_average,
+                MIN(min_value) as absolute_minimum,
+                MAX(max_value) as absolute_maximum,
+                AVG(std_dev) as average_std_dev
+            ')->first();
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'aggregation' => 'hourly',
+                'period' => [
+                    'start_date' => $request->input('start_date'),
+                    'end_date' => $request->input('end_date')
+                ],
+                'statistics' => [
+                    'total_hours' => (int) $stats->total_hours,
+                    'overall_average' => round($stats->overall_average, 2),
+                    'absolute_minimum' => $stats->absolute_minimum,
+                    'absolute_maximum' => $stats->absolute_maximum,
+                    'average_std_dev' => round($stats->average_std_dev, 2)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao calcular estatísticas horárias', $e->getMessage());
+        }
+    }
+
+    public function getHourlyTrends(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'period' => 'in:24h,7d,30d',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $period = $request->input('period', '24h');
+            $query = DB::table('h_' . $type);
+            $this->applyDateFilters($query, $request, 'hour_timestamp');
+
+            // Calcula tendência baseada no período
+            $data = $query->orderBy('hour_timestamp', 'asc')->get();
+
+            $trends = [];
+            foreach ($data as $hour) {
+                $trends[] = [
+                    'hour_timestamp' => $hour->hour_timestamp,
+                    'avg_value' => $hour->avg_value,
+                    'min_value' => $hour->min_value,
+                    'max_value' => $hour->max_value,
+                    'variation' => $hour->max_value - $hour->min_value
+                ];
+            }
+
+            // Calcula tendência geral
+            $firstValue = $data->first()->avg_value ?? 0;
+            $lastValue = $data->last()->avg_value ?? 0;
+            $trendDirection = $lastValue > $firstValue ? 'ascending' : ($lastValue < $firstValue ? 'descending' : 'stable');
+            $trendPercentage = $firstValue != 0 ? round((($lastValue - $firstValue) / $firstValue) * 100, 2) : 0;
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'aggregation' => 'hourly',
+                'period' => $period,
+                'trend_analysis' => [
+                    'direction' => $trendDirection,
+                    'percentage_change' => $trendPercentage,
+                    'first_value' => $firstValue,
+                    'last_value' => $lastValue
+                ],
+                'total_records' => $data->count(),
+                'data' => $trends
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar tendências horárias', $e->getMessage());
+        }
+    }
+
+    // DADOS AGREGADOS POR DIA
+
+    public function getAllDailyData(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'integer|min:1|max:365',
+            'start_date' => 'date',
+            'end_date' => 'date|after_or_equal:start_date',
+            'order' => 'in:asc,desc'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        try {
+            $sensorTypes = $this->getDailySensorTypes();
+            $allData = [];
+
+            foreach ($sensorTypes as $type => $table) {
+                $query = DB::table($table);
+                $this->applyDateFilters($query, $request, 'day_date');
+                $query->orderBy('day_date', $request->input('order', 'desc'));
+                $allData[$type] = $query->limit($request->input('limit', 30))->get();
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'aggregation' => 'daily',
+                'total_types' => count($sensorTypes),
+                'data' => $allData
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar dados agregados por dia', $e->getMessage());
+        }
+    }
+
+    public function getDailyData(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'limit' => 'integer|min:1|max:365',
+            'start_date' => 'date',
+            'end_date' => 'date|after_or_equal:start_date',
+            'order' => 'in:asc,desc'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $query = DB::table('d_' . $type);
+            $this->applyDateFilters($query, $request, 'day_date');
+            $query->orderBy('day_date', $request->input('order', 'desc'));
+
+            $data = $query->limit($request->input('limit', 30))->get();
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'aggregation' => 'daily',
+                'total_records' => $data->count(),
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar dados agregados por dia', $e->getMessage());
+        }
+    }
+
+    public function getDailyStats(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $query = DB::table('d_' . $type);
+            $this->applyDateFilters($query, $request, 'day_date');
+
+            $stats = $query->selectRaw('
+                COUNT(*) as total_days,
+                AVG(avg_value) as overall_average,
+                MIN(min_value) as absolute_minimum,
+                MAX(max_value) as absolute_maximum,
+                AVG(std_dev) as average_std_dev
+            ')->first();
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'aggregation' => 'daily',
+                'period' => [
+                    'start_date' => $request->input('start_date'),
+                    'end_date' => $request->input('end_date')
+                ],
+                'statistics' => [
+                    'total_days' => (int) $stats->total_days,
+                    'overall_average' => round($stats->overall_average, 2),
+                    'absolute_minimum' => $stats->absolute_minimum,
+                    'absolute_maximum' => $stats->absolute_maximum,
+                    'average_std_dev' => round($stats->average_std_dev, 2)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao calcular estatísticas diárias', $e->getMessage());
+        }
+    }
+
+    public function getDailyMonthlyView(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'year' => 'required|integer|min:2020|max:2030',
+            'month' => 'integer|min:1|max:12'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $year = $request->input('year');
+            $month = $request->input('month');
+
+            $query = DB::table('d_' . $type);
+
+            if ($month) {
+                $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+                $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+                $query->whereBetween('day_date', [$startDate->toDateString(), $endDate->toDateString()]);
+            } else {
+                $startDate = Carbon::create($year, 1, 1)->startOfYear();
+                $endDate = Carbon::create($year, 12, 31)->endOfYear();
+                $query->whereBetween('day_date', [$startDate->toDateString(), $endDate->toDateString()]);
+            }
+
+            $data = $query->orderBy('day_date', 'asc')->get();
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'view' => 'monthly',
+                'year' => $year,
+                'month' => $month,
+                'total_records' => $data->count(),
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar visão mensal', $e->getMessage());
+        }
+    }
+
+    public function getDailyWeeklyView(Request $request, string $type): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'week_start' => 'required|date',
+            'weeks' => 'integer|min:1|max:12'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        if (!$this->isValidSensorType($type)) {
+            return $this->invalidSensorTypeResponse();
+        }
+
+        try {
+            $weekStart = Carbon::parse($request->input('week_start'))->startOfWeek();
+            $weeksCount = $request->input('weeks', 1);
+            $weekEnd = $weekStart->copy()->addWeeks($weeksCount)->endOfWeek();
+
+            $query = DB::table('d_' . $type);
+            $query->whereBetween('day_date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+
+            $data = $query->orderBy('day_date', 'asc')->get();
+
+            // Agrupa por semana
+            $weeklyData = [];
+            foreach ($data as $day) {
+                $dayDate = Carbon::parse($day->day_date);
+                $weekKey = $dayDate->startOfWeek()->format('Y-m-d');
+
+                if (!isset($weeklyData[$weekKey])) {
+                    $weeklyData[$weekKey] = [
+                        'week_start' => $weekKey,
+                        'week_end' => $dayDate->endOfWeek()->format('Y-m-d'),
+                        'days' => []
+                    ];
+                }
+
+                $weeklyData[$weekKey]['days'][] = $day;
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'type' => $type,
+                'view' => 'weekly',
+                'period' => [
+                    'start_date' => $weekStart->format('Y-m-d'),
+                    'end_date' => $weekEnd->format('Y-m-d'),
+                    'weeks_count' => $weeksCount
+                ],
+                'total_records' => $data->count(),
+                'data' => array_values($weeklyData)
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erro ao buscar visão semanal', $e->getMessage());
+        }
+    }
+
     private function getSensorTypes(): array
     {
         return [
@@ -571,5 +988,29 @@ class SensorDataController extends Controller
             'error' => $error,
             'message' => $message
         ], 500);
+    }
+
+    private function getHourlySensorTypes(): array
+    {
+        return [
+            'temperature' => 'h_temperature',
+            'humidity' => 'h_humidity',
+            'noise' => 'h_noise',
+            'pressure' => 'h_pressure',
+            'eco2' => 'h_eco2',
+            'tvoc' => 'h_tvoc'
+        ];
+    }
+
+    private function getDailySensorTypes(): array
+    {
+        return [
+            'temperature' => 'd_temperature',
+            'humidity' => 'd_humidity',
+            'noise' => 'd_noise',
+            'pressure' => 'd_pressure',
+            'eco2' => 'd_eco2',
+            'tvoc' => 'd_tvoc'
+        ];
     }
 }
