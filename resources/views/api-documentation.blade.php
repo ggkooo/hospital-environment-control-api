@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hospital Environment Control API</title>
+    <title>{{ $translations['title'] }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body {
@@ -588,17 +588,22 @@
                 padding: 12px;
             }
         }
+
+        /* Ajuste no container para acomodar o seletor */
+        .container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Hospital Environment Control API</h1>
-            <p>API Documentation for hospital environmental monitoring</p>
+            <h1>{{ $translations['title'] }}</h1>
+            <p>{{ $translations['description'] }}</p>
             <div class="auth-info">
-                <span class="badge">Authentication: X-API-Key</span>
-                <span class="badge api">Base URL: /api</span>
+                <span class="badge">{{ $translations['authentication'] }}</span>
+                <span class="badge api">{{ $translations['base_url'] }}</span>
             </div>
         </div>
 
@@ -630,7 +635,7 @@
                     <div class="route-details" id="details-{{ $groupIndex }}-{{ $routeIndex }}">
                         @if(isset($route['headers']))
                         <div class="detail-section">
-                            <div class="detail-title">Headers</div>
+                            <div class="detail-title">{{ $translations['headers'] }}</div>
                             <div class="code-block">@foreach($route['headers'] as $header => $value){{ $header }}: {{ $value }}
 @endforeach</div>
                         </div>
@@ -638,7 +643,7 @@
 
                         @if(isset($route['parameters']))
                         <div class="detail-section">
-                            <div class="detail-title">Parameters</div>
+                            <div class="detail-title">{{ $translations['parameters'] }}</div>
                             @foreach($route['parameters'] as $param => $desc)
                             <div class="param-item">
                                 <code class="param-name">{{ $param }}</code> - {{ $desc }}
@@ -649,7 +654,7 @@
 
                         @if(isset($route['query_params']))
                         <div class="detail-section">
-                            <div class="detail-title">Query Parameters</div>
+                            <div class="detail-title">{{ $translations['query_params'] }}</div>
                             @foreach($route['query_params'] as $param => $desc)
                             <div class="param-item">
                                 <code class="param-name query">{{ $param }}</code> - {{ $desc }}
@@ -660,7 +665,7 @@
 
                         @if(isset($route['example_request']))
                         <div class="detail-section">
-                            <div class="detail-title">Request Example</div>
+                            <div class="detail-title">{{ $translations['request_example'] }}</div>
                             <div class="code-block">GET {{ $route['example_request']['url'] }}</div>
                             <div style="margin-top: 8px; font-size: 0.85rem; color: #6b7280;">
                                 {{ $route['example_request']['description'] }}
@@ -670,14 +675,14 @@
 
                         @if(isset($route['body']))
                         <div class="detail-section">
-                            <div class="detail-title">Request Body</div>
+                            <div class="detail-title">{{ $translations['request_body'] }}</div>
                             <div class="code-block">{{ json_encode($route['body'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
                         </div>
                         @endif
 
                         @if(isset($route['response']))
                         <div class="detail-section">
-                            <div class="detail-title">Response Example</div>
+                            <div class="detail-title">{{ $translations['response_example'] }}</div>
                             <div class="code-block">{{ json_encode($route['response'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
                         </div>
                         @endif
@@ -690,7 +695,7 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p><a href="https://github.com/ggkooo" target="_blank" rel="external">Giordano Bruno Biasi Berwig</a> | <strong>Hospital Environment Control API v1.0</strong> | {{ date('Y') }}</p>
+            <p><a href="https://github.com/ggkooo" target="_blank" rel="external">Giordano Bruno Biasi Berwig</a> | <strong>{{ $translations['footer_text'] }}</strong> | {{ date('Y') }}</p>
         </div>
     </div>
 
@@ -707,6 +712,7 @@
                 arrow.style.transform = 'rotate(180deg)';
             }
         }
+
 
         // Improved accessibility for mobile devices
         document.addEventListener('DOMContentLoaded', function() {

@@ -6,11 +6,41 @@ use Illuminate\Http\Request;
 
 class ApiDocumentationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $apiRoutes = [
+        $apiRoutes = $this->getApiRoutes();
+        $translations = $this->getTranslations();
+
+        return view('api-documentation', compact('apiRoutes', 'translations'));
+    }
+
+    private function getApiRoutes()
+    {
+        return $this->getEnglishRoutes();
+    }
+
+    private function getTranslations()
+    {
+        return [
+            'title' => 'Hospital Environment Control API',
+            'description' => 'API Documentation for hospital environmental monitoring',
+            'authentication' => 'Authentication: X-API-Key',
+            'base_url' => 'Base URL: /api',
+            'headers' => 'Headers',
+            'parameters' => 'Parameters',
+            'query_params' => 'Query Parameters',
+            'request_example' => 'Request Example',
+            'request_body' => 'Request Body',
+            'response_example' => 'Response Example',
+            'footer_text' => 'Hospital Environment Control API v1.0'
+        ];
+    }
+
+    private function getEnglishRoutes()
+    {
+        return [
             [
-                'group' => 'Individual Reading',
+                'group' => 'Data Storage',
                 'routes' => [
                     [
                         'method' => 'POST',
@@ -27,19 +57,21 @@ class ApiDocumentationController extends Controller
                             'pression' => 1013.25,
                             'eco2' => 400,
                             'tvoc' => 150,
-                            'timestamp' => '2025-10-30 10:00:00'
+                            'timestamp' => '2025-11-14 10:00:00'
                         ],
                         'response' => [
                             'status' => 'success',
-                            'message' => 'Data received successfully',
-                            'file' => 'sensor_data_batch_f2f62e15-16eb-4290-87e7-b19d84f0aa9c.json',
-                            'total_records' => 1
+                            'message' => 'Data received and processing started',
+                            'batch_id' => 'f2f62e15-16eb-4290-87e7-b19d84f0aa9c',
+                            'total_records' => 1,
+                            'received_at' => '2025-11-14 10:00:00',
+                            'processing' => 'background'
                         ]
                     ],
                     [
                         'method' => 'POST',
                         'endpoint' => '/api/sensor-data',
-                        'description' => 'Stores multiple sensor readings in batch (each reading must contain all sensor types)',
+                        'description' => 'Stores multiple sensor readings in batch',
                         'headers' => [
                             'X-API-Key' => 'your-api-key',
                             'Content-Type' => 'application/json'
@@ -53,69 +85,67 @@ class ApiDocumentationController extends Controller
                                     'pression' => 1013.25,
                                     'eco2' => 400,
                                     'tvoc' => 150,
-                                    'timestamp' => '2025-10-30 10:00:00'
+                                    'timestamp' => '2025-11-14 10:00:00'
                                 ],
                                 [
                                     'temperature' => 26.0,
-                                    'humidity' => 58.5,
-                                    'noise' => 47.1,
+                                    'humidity' => 58.0,
+                                    'noise' => 42.1,
                                     'pression' => 1012.80,
-                                    'eco2' => 420,
-                                    'tvoc' => 160,
-                                    'timestamp' => '2025-10-30 10:01:00'
+                                    'eco2' => 405,
+                                    'tvoc' => 148,
+                                    'timestamp' => '2025-11-14 10:01:00'
                                 ]
                             ]
                         ],
                         'response' => [
                             'status' => 'success',
-                            'message' => 'Data received successfully',
-                            'file' => 'sensor_data_batch_1a3370e5-1896-422d-8014-4c7774a13c74.json',
-                            'total_records' => 2
+                            'message' => 'Data received and processing started',
+                            'batch_id' => 'f2f62e15-16eb-4290-87e7-b19d84f0aa9c',
+                            'total_records' => 2,
+                            'received_at' => '2025-11-14 10:00:00',
+                            'processing' => 'background'
                         ]
                     ]
                 ]
             ],
             [
-                'group' => 'Raw Readings',
+                'group' => 'Raw Data',
                 'routes' => [
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/raw/latest',
-                        'description' => 'Gets the latest readings from all sensor types',
+                        'description' => 'Gets the latest data from all sensors',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/raw/latest',
-                            'description' => 'Retrieves the most recent reading from each sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
                         'response' => [
                             'status' => 'success',
-                            'timestamp' => '2025-10-30 15:30:00',
+                            'timestamp' => '2025-11-14 10:05:00',
                             'data' => [
                                 'temperature' => [
-                                    'value' => '25.50',
-                                    'timestamp' => '2025-10-30 15:29:45'
+                                    'value' => 25.5,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ],
                                 'humidity' => [
-                                    'value' => '60.00',
-                                    'timestamp' => '2025-10-30 15:29:50'
+                                    'value' => 60.0,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ],
                                 'noise' => [
-                                    'value' => '45.20',
-                                    'timestamp' => '2025-10-30 15:29:48'
+                                    'value' => 45.2,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ],
-                                'pressure' => [
-                                    'value' => '1013.25',
-                                    'timestamp' => '2025-10-30 15:29:52'
+                                'pression' => [
+                                    'value' => 1013.25,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ],
                                 'eco2' => [
-                                    'value' => '400',
-                                    'timestamp' => '2025-10-30 15:29:46'
+                                    'value' => 400,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ],
                                 'tvoc' => [
-                                    'value' => '150',
-                                    'timestamp' => '2025-10-30 15:29:49'
+                                    'value' => 150,
+                                    'timestamp' => '2025-11-14 10:04:30'
                                 ]
                             ]
                         ]
@@ -123,186 +153,165 @@ class ApiDocumentationController extends Controller
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/raw/all',
-                        'description' => 'Gets all sensor readings',
+                        'description' => 'Gets raw data from all sensors',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
                         'query_params' => [
-                            'limit' => 'Number of records per page (default: 100)',
-                            'page' => 'Page number (default: 1)',
-                            'start_date' => 'Start date (format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (format: Y-m-d H:i:s)'
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
                         ],
                         'example_request' => [
-                            'url' => '/api/sensor-data/raw/all?limit=50&page=2&start_date=2025-10-30 08:00:00&end_date=2025-10-30 18:00:00',
-                            'description' => 'Retrieves 50 records from page 2, between 08:00 and 18:00 on 2025-10-30'
+                            'url' => '/api/sensor-data/raw/all?limit=50&start_date=2025-11-14&order=desc',
+                            'description' => 'Get last 50 records from 14/11/2025'
                         ],
                         'response' => [
-                            'success' => true,
+                            'status' => 'success',
+                            'total_records' => 50,
+                            'limit' => 50,
+                            'order' => 'desc',
                             'data' => [
-                                'current_page' => 2,
-                                'data' => [
-                                    [
-                                        'id' => 51,
-                                        'sensor_type' => 'temperature',
-                                        'value' => '25.50',
-                                        'timestamp' => '2025-10-30 08:30:00'
-                                    ],
-                                    [
-                                        'id' => 52,
-                                        'sensor_type' => 'humidity',
-                                        'value' => '60.00',
-                                        'timestamp' => '2025-10-30 08:30:00'
-                                    ],
-                                    [
-                                        'id' => 53,
-                                        'sensor_type' => 'noise',
-                                        'value' => '45.20',
-                                        'timestamp' => '2025-10-30 08:31:00'
-                                    ]
+                                [
+                                    'id' => 12345,
+                                    'temperature' => 25.5,
+                                    'humidity' => 60.0,
+                                    'noise' => 45.2,
+                                    'pression' => 1013.25,
+                                    'eco2' => 400,
+                                    'tvoc' => 150,
+                                    'timestamp' => '2025-11-14 10:00:00',
+                                    'created_at' => '2025-11-14 10:00:05'
                                 ],
-                                'total' => 1000,
-                                'per_page' => 50,
-                                'last_page' => 20,
-                                'from' => 51,
-                                'to' => 100
+                                [
+                                    'id' => 12344,
+                                    'temperature' => 25.3,
+                                    'humidity' => 59.8,
+                                    'noise' => 44.9,
+                                    'pression' => 1013.10,
+                                    'eco2' => 398,
+                                    'tvoc' => 149,
+                                    'timestamp' => '2025-11-14 09:59:00',
+                                    'created_at' => '2025-11-14 09:59:05'
+                                ]
                             ]
                         ]
                     ],
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/raw/{type}',
-                        'description' => 'Gets readings from a specific sensor type',
-                        'parameters' => [
-                            'type' => 'Sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
+                        'description' => 'Gets raw data from a specific sensor',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
                         'query_params' => [
-                            'limit' => 'Number of records per page (default: 100)',
-                            'start_date' => 'Start date (format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (format: Y-m-d H:i:s)',
-                            'order' => 'Result order: asc or desc (default: desc)'
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
                         ],
                         'example_request' => [
-                            'url' => '/api/sensor-data/raw/temperature?limit=100&start_date=2025-10-30 06:00:00&end_date=2025-10-30 12:00:00&order=asc',
-                            'description' => 'Retrieves up to 100 temperature readings between 06:00 and 12:00, ordered chronologically (oldest first)'
+                            'url' => '/api/sensor-data/raw/temperature?limit=100&start_date=2025-11-14',
+                            'description' => 'Get 100 temperature records from 14/11/2025'
                         ],
                         'response' => [
                             'status' => 'success',
                             'type' => 'temperature',
-                            'total_records' => 48,
+                            'total_records' => 100,
+                            'limit' => 100,
+                            'order' => 'desc',
                             'data' => [
-                                ['id' => 1, 'value' => '25.50', 'timestamp' => '2025-10-30 06:15:00'],
-                                ['id' => 2, 'value' => '25.80', 'timestamp' => '2025-10-30 06:30:00'],
-                                ['id' => 3, 'value' => '24.90', 'timestamp' => '2025-10-30 06:45:00'],
-                                ['id' => 4, 'value' => '26.10', 'timestamp' => '2025-10-30 07:00:00'],
-                                ['id' => 5, 'value' => '25.75', 'timestamp' => '2025-10-30 07:15:00']
+                                [
+                                    'id' => 12345,
+                                    'value' => 25.5,
+                                    'timestamp' => '2025-11-14 10:00:00',
+                                    'created_at' => '2025-11-14 10:00:05'
+                                ],
+                                [
+                                    'id' => 12344,
+                                    'value' => 25.3,
+                                    'timestamp' => '2025-11-14 09:59:00',
+                                    'created_at' => '2025-11-14 09:59:05'
+                                ]
                             ]
                         ]
                     ],
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/raw/{type}/stats',
-                        'description' => 'Gets statistics for readings from a sensor type',
-                        'parameters' => [
-                            'type' => 'Sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
+                        'description' => 'Calculates statistics from raw sensor data',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
-                        'query_params' => [
-                            'start_date' => 'Start date (required, format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (required, format: Y-m-d H:i:s)'
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
                         ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/raw/temperature/stats?start_date=2025-10-30 06:00:00&end_date=2025-10-30 18:00:00',
-                            'description' => 'Gets temperature statistics between 06:00 and 18:00. Both start_date and end_date parameters are required'
+                        'query_params' => [
+                            'start_date' => 'Start date (required, format: Y-m-d)',
+                            'end_date' => 'End date (required, format: Y-m-d)'
                         ],
                         'response' => [
                             'status' => 'success',
                             'type' => 'temperature',
                             'period' => [
-                                'start_date' => '2025-10-30 06:00:00',
-                                'end_date' => '2025-10-30 18:00:00'
+                                'start_date' => '2025-11-14',
+                                'end_date' => '2025-11-14'
                             ],
                             'statistics' => [
-                                'total_readings' => 39,
-                                'average' => 25.74,
-                                'minimum' => '25.10',
-                                'maximum' => '26.30',
-                                'standard_deviation' => 0.35
+                                'total_readings' => 1440,
+                                'average' => 25.32,
+                                'minimum' => 22.1,
+                                'maximum' => 28.5,
+                                'standard_deviation' => 1.85
                             ]
                         ]
                     ]
                 ]
             ],
             [
-                'group' => 'Aggregated by Minute',
+                'group' => 'Minute Aggregated Data',
                 'routes' => [
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/minute/all',
-                        'description' => 'Gets minute-aggregated data from all sensor types',
+                        'description' => 'Gets minute-aggregated data from all sensors',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
                         'query_params' => [
-                            'start_date' => 'Start date (format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (format: Y-m-d H:i:s)',
-                            'limit' => 'Number of records (default: 100)',
-                            'order' => 'Result order: asc or desc (default: desc)'
-                        ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/minute/all?start_date=2025-10-30 08:00:00&end_date=2025-10-30 16:00:00&limit=50&order=asc',
-                            'description' => 'Retrieves up to 50 minute-aggregated records from all sensors, between 08:00 and 16:00, ordered chronologically (oldest first)'
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
                         ],
                         'response' => [
                             'status' => 'success',
                             'aggregation' => 'minute',
+                            'total_records' => 100,
                             'total_types' => 6,
                             'data' => [
                                 'temperature' => [
                                     [
-                                        'avg_value' => '25.50',
-                                        'min_value' => '24.00',
-                                        'max_value' => '27.00',
-                                        'std_dev' => '1.25',
-                                        'reading_count' => 60,
-                                        'variation_range' => '3.00',
-                                        'minute_timestamp' => '2025-10-30 08:00:00'
-                                    ],
-                                    [
-                                        'avg_value' => '25.80',
-                                        'min_value' => '24.50',
-                                        'max_value' => '27.20',
-                                        'std_dev' => '1.10',
-                                        'reading_count' => 58,
-                                        'variation_range' => '2.70',
-                                        'minute_timestamp' => '2025-10-30 08:01:00'
+                                        'minute_timestamp' => '2025-11-14 10:00:00',
+                                        'avg_value' => 25.32,
+                                        'min_value' => 24.9,
+                                        'max_value' => 25.8,
+                                        'std_dev' => 0.25,
+                                        'total_readings' => 60
                                     ]
                                 ],
                                 'humidity' => [
                                     [
-                                        'avg_value' => '60.00',
-                                        'min_value' => '58.00',
-                                        'max_value' => '62.00',
-                                        'std_dev' => '2.15',
-                                        'reading_count' => 60,
-                                        'variation_range' => '4.00',
-                                        'minute_timestamp' => '2025-10-30 08:00:00'
-                                    ]
-                                ],
-                                'noise' => [
-                                    [
-                                        'avg_value' => '45.20',
-                                        'min_value' => '42.00',
-                                        'max_value' => '48.50',
-                                        'std_dev' => '3.25',
-                                        'reading_count' => 60,
-                                        'variation_range' => '6.50',
-                                        'minute_timestamp' => '2025-10-30 08:00:00'
+                                        'minute_timestamp' => '2025-11-14 10:00:00',
+                                        'avg_value' => 59.8,
+                                        'min_value' => 58.5,
+                                        'max_value' => 61.2,
+                                        'std_dev' => 0.85,
+                                        'total_readings' => 60
                                     ]
                                 ]
                             ]
@@ -311,46 +320,42 @@ class ApiDocumentationController extends Controller
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/minute/{type}',
-                        'description' => 'Gets minute-aggregated data from a specific sensor type',
-                        'parameters' => [
-                            'type' => 'Sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
+                        'description' => 'Gets minute-aggregated data from a specific sensor',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
-                        'query_params' => [
-                            'start_date' => 'Start date (format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (format: Y-m-d H:i:s)',
-                            'limit' => 'Number of records (default: 100)',
-                            'order' => 'Result order: asc or desc (default: desc)'
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
                         ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/minute/temperature?start_date=2025-10-30 10:00:00&end_date=2025-10-30 14:00:00&limit=30&order=asc',
-                            'description' => 'Retrieves up to 30 minute-aggregated temperature records, between 10:00 and 14:00, ordered chronologically'
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
                         ],
                         'response' => [
                             'status' => 'success',
                             'type' => 'temperature',
                             'aggregation' => 'minute',
-                            'total_records' => 30,
+                            'total_records' => 100,
+                            'limit' => 100,
+                            'order' => 'desc',
                             'data' => [
                                 [
-                                    'avg_value' => '25.50',
-                                    'min_value' => '24.00',
-                                    'max_value' => '27.00',
-                                    'std_dev' => '1.25',
-                                    'reading_count' => 60,
-                                    'variation_range' => '3.00',
-                                    'minute_timestamp' => '2025-10-30 10:00:00'
+                                    'minute_timestamp' => '2025-11-14 10:00:00',
+                                    'avg_value' => 25.32,
+                                    'min_value' => 24.9,
+                                    'max_value' => 25.8,
+                                    'std_dev' => 0.25,
+                                    'total_readings' => 60
                                 ],
                                 [
-                                    'avg_value' => '25.80',
-                                    'min_value' => '24.20',
-                                    'max_value' => '27.30',
-                                    'std_dev' => '1.35',
-                                    'reading_count' => 58,
-                                    'variation_range' => '3.10',
-                                    'minute_timestamp' => '2025-10-30 10:01:00'
+                                    'minute_timestamp' => '2025-11-14 09:59:00',
+                                    'avg_value' => 25.18,
+                                    'min_value' => 24.7,
+                                    'max_value' => 25.6,
+                                    'std_dev' => 0.30,
+                                    'total_readings' => 60
                                 ]
                             ]
                         ]
@@ -358,52 +363,40 @@ class ApiDocumentationController extends Controller
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/minute/{type}/variations',
-                        'description' => 'Gets variations in minute-aggregated data based on configurable thresholds',
-                        'parameters' => [
-                            'type' => 'Sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
+                        'description' => 'Gets minutes with significant data variations',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
-                        'query_params' => [
-                            'start_date' => 'Start date (format: Y-m-d H:i:s)',
-                            'end_date' => 'End date (format: Y-m-d H:i:s)',
-                            'limit' => 'Number of records (default: 100)',
-                            'order' => 'Result order: asc or desc (default: desc)',
-                            'min_range' => 'Minimum variation_range value to filter (numeric)',
-                            'min_std_dev' => 'Minimum standard deviation value to filter (numeric)'
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
                         ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/minute/temperature/variations?start_date=2025-10-30 08:00:00&end_date=2025-10-30 16:00:00&min_range=2.0&min_std_dev=1.0&limit=20&order=desc',
-                            'description' => 'Retrieves temperature variations with range > 2.0 or standard deviation > 1.0, between 08:00 and 16:00, limited to 20 records, ordered by descending timestamp'
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)',
+                            'min_range' => 'Minimum variation to filter',
+                            'min_std_dev' => 'Minimum standard deviation to filter'
                         ],
                         'response' => [
                             'status' => 'success',
                             'type' => 'temperature',
-                            'filter' => 'variations',
-                            'thresholds' => [
+                            'aggregation' => 'minute',
+                            'filter' => [
                                 'min_range' => 2.0,
-                                'min_std_dev' => 1.0
+                                'min_std_dev' => 0.5
                             ],
-                            'total_records' => 15,
+                            'total_records' => 25,
                             'data' => [
                                 [
-                                    'avg_value' => '26.20',
-                                    'min_value' => '23.50',
-                                    'max_value' => '28.10',
-                                    'std_dev' => '1.85',
-                                    'reading_count' => 45,
-                                    'variation_range' => '4.60',
-                                    'minute_timestamp' => '2025-10-30 14:30:00'
-                                ],
-                                [
-                                    'avg_value' => '25.80',
-                                    'min_value' => '23.20',
-                                    'max_value' => '27.40',
-                                    'std_dev' => '1.65',
-                                    'reading_count' => 52,
-                                    'variation_range' => '4.20',
-                                    'minute_timestamp' => '2025-10-30 12:15:00'
+                                    'minute_timestamp' => '2025-11-14 14:23:00',
+                                    'avg_value' => 27.45,
+                                    'min_value' => 25.2,
+                                    'max_value' => 29.8,
+                                    'range' => 4.6,
+                                    'std_dev' => 1.25,
+                                    'total_readings' => 60,
+                                    'variation_reason' => 'high_fluctuation'
                                 ]
                             ]
                         ]
@@ -411,56 +404,428 @@ class ApiDocumentationController extends Controller
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sensor-data/minute/{type}/comparison',
-                        'description' => 'Compares raw data with aggregated data for a specific minute',
-                        'parameters' => [
-                            'type' => 'Sensor type (temperature, humidity, noise, pressure, eco2, tvoc)'
-                        ],
+                        'description' => 'Compares raw data with aggregated data from a specific minute',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
-                        'query_params' => [
-                            'minute' => 'Specific minute timestamp (required, format: Y-m-d H:i:s)'
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
                         ],
-                        'example_request' => [
-                            'url' => '/api/sensor-data/minute/temperature/comparison?minute=2025-10-30 14:30:00',
-                            'description' => 'Compares raw temperature data with aggregated data for minute 14:30:00'
+                        'query_params' => [
+                            'minute' => 'Specific minute (required, format: Y-m-d H:i:s)'
                         ],
                         'response' => [
                             'status' => 'success',
                             'type' => 'temperature',
-                            'minute' => '2025-10-30 14:30:00',
+                            'minute_timestamp' => '2025-11-14 10:00:00',
+                            'aggregated_data' => [
+                                'avg_value' => 25.32,
+                                'min_value' => 24.9,
+                                'max_value' => 25.8,
+                                'std_dev' => 0.25,
+                                'total_readings' => 60
+                            ],
                             'raw_data' => [
-                                'count' => 58,
-                                'readings' => [
-                                    [
-                                        'value' => '25.20',
-                                        'timestamp' => '2025-10-30 14:30:05'
-                                    ],
-                                    [
-                                        'value' => '25.80',
-                                        'timestamp' => '2025-10-30 14:30:15'
-                                    ],
-                                    [
-                                        'value' => '26.10',
-                                        'timestamp' => '2025-10-30 14:30:25'
-                                    ]
+                                [
+                                    'value' => 25.1,
+                                    'timestamp' => '2025-11-14 10:00:00'
+                                ],
+                                [
+                                    'value' => 25.3,
+                                    'timestamp' => '2025-11-14 10:00:01'
                                 ]
                             ],
-                            'aggregate_data' => [
-                                'avg_value' => '25.70',
-                                'min_value' => '24.50',
-                                'max_value' => '27.20',
-                                'std_dev' => '1.25',
-                                'reading_count' => 58,
-                                'variation_range' => '2.70',
-                                'minute_timestamp' => '2025-10-30 14:30:00'
+                            'comparison' => [
+                                'accuracy' => 99.8,
+                                'data_integrity' => 'excellent'
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'group' => 'Hourly Aggregated Data',
+                'routes' => [
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/hourly/all',
+                        'description' => 'Gets hourly-aggregated data from all sensors',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'aggregation' => 'hourly',
+                            'total_types' => 6,
+                            'data' => [
+                                'temperature' => [
+                                    [
+                                        'hour_timestamp' => '2025-11-14 10:00:00',
+                                        'avg_value' => 25.32,
+                                        'min_value' => 24.1,
+                                        'max_value' => 26.8,
+                                        'std_dev' => 0.85,
+                                        'total_readings' => 3600
+                                    ]
+                                ],
+                                'humidity' => [
+                                    [
+                                        'hour_timestamp' => '2025-11-14 10:00:00',
+                                        'avg_value' => 59.8,
+                                        'min_value' => 57.2,
+                                        'max_value' => 62.5,
+                                        'std_dev' => 1.15,
+                                        'total_readings' => 3600
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/hourly/{type}',
+                        'description' => 'Gets hourly-aggregated data from a specific sensor',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-1000, default: 100)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'aggregation' => 'hourly',
+                            'total_records' => 24,
+                            'limit' => 100,
+                            'order' => 'desc',
+                            'data' => [
+                                [
+                                    'hour_timestamp' => '2025-11-14 10:00:00',
+                                    'avg_value' => 25.32,
+                                    'min_value' => 24.1,
+                                    'max_value' => 26.8,
+                                    'std_dev' => 0.85,
+                                    'total_readings' => 3600
+                                ],
+                                [
+                                    'hour_timestamp' => '2025-11-14 09:00:00',
+                                    'avg_value' => 24.98,
+                                    'min_value' => 23.5,
+                                    'max_value' => 26.2,
+                                    'std_dev' => 0.92,
+                                    'total_readings' => 3600
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/hourly/{type}/stats',
+                        'description' => 'Calculates hourly statistics from a sensor',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'start_date' => 'Start date (required, format: Y-m-d)',
+                            'end_date' => 'End date (required, format: Y-m-d)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'aggregation' => 'hourly',
+                            'period' => [
+                                'start_date' => '2025-11-14',
+                                'end_date' => '2025-11-14'
+                            ],
+                            'statistics' => [
+                                'total_hours' => 24,
+                                'overall_average' => 25.32,
+                                'absolute_minimum' => 22.1,
+                                'absolute_maximum' => 28.5,
+                                'average_std_dev' => 1.25
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/hourly/{type}/trends',
+                        'description' => 'Analyzes hourly trends from a sensor',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'start_date' => 'Start date (required, format: Y-m-d)',
+                            'end_date' => 'End date (required, format: Y-m-d)',
+                            'period' => 'Analysis period: 24h|7d|30d (default: 24h)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'aggregation' => 'hourly',
+                            'period' => '24h',
+                            'trend_analysis' => [
+                                'direction' => 'ascending',
+                                'percentage_change' => 2.5,
+                                'first_value' => 24.8,
+                                'last_value' => 25.4,
+                                'peak_hour' => '2025-11-14 14:00:00',
+                                'lowest_hour' => '2025-11-14 06:00:00'
+                            ],
+                            'total_records' => 24,
+                            'data' => [
+                                [
+                                    'hour_timestamp' => '2025-11-14 00:00:00',
+                                    'avg_value' => 24.8
+                                ],
+                                [
+                                    'hour_timestamp' => '2025-11-14 01:00:00',
+                                    'avg_value' => 24.9
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'group' => 'Daily Aggregated Data',
+                'routes' => [
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/daily/all',
+                        'description' => 'Gets daily-aggregated data from all sensors',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-365, default: 30)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'aggregation' => 'daily',
+                            'total_records' => 30,
+                            'total_types' => 6,
+                            'data' => [
+                                'temperature' => [
+                                    [
+                                        'date' => '2025-11-14',
+                                        'avg_value' => 25.32,
+                                        'min_value' => 22.1,
+                                        'max_value' => 28.5,
+                                        'std_dev' => 1.85,
+                                        'total_readings' => 86400
+                                    ]
+                                ],
+                                'humidity' => [
+                                    [
+                                        'date' => '2025-11-14',
+                                        'avg_value' => 59.8,
+                                        'min_value' => 55.2,
+                                        'max_value' => 65.1,
+                                        'std_dev' => 2.45,
+                                        'total_readings' => 86400
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/daily/{type}',
+                        'description' => 'Gets daily-aggregated data from a specific sensor',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'limit' => 'Maximum number of records (1-365, default: 30)',
+                            'start_date' => 'Start date (format: Y-m-d)',
+                            'end_date' => 'End date (format: Y-m-d)',
+                            'order' => 'Order: asc or desc (default: desc)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'aggregation' => 'daily',
+                            'total_records' => 30,
+                            'limit' => 30,
+                            'order' => 'desc',
+                            'data' => [
+                                [
+                                    'date' => '2025-11-14',
+                                    'avg_value' => 25.32,
+                                    'min_value' => 22.1,
+                                    'max_value' => 28.5,
+                                    'std_dev' => 1.85,
+                                    'total_readings' => 86400
+                                ],
+                                [
+                                    'date' => '2025-11-13',
+                                    'avg_value' => 24.98,
+                                    'min_value' => 21.8,
+                                    'max_value' => 27.9,
+                                    'std_dev' => 1.92,
+                                    'total_readings' => 86400
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/daily/{type}/stats',
+                        'description' => 'Calculates daily statistics from a sensor',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'start_date' => 'Start date (required, format: Y-m-d)',
+                            'end_date' => 'End date (required, format: Y-m-d)'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'period' => [
+                                'start_date' => '2025-11-14',
+                                'end_date' => '2025-11-14'
+                            ],
+                            'statistics' => [
+                                'total_readings' => 86400,
+                                'average' => 25.32,
+                                'minimum' => 22.1,
+                                'maximum' => 28.5,
+                                'standard_deviation' => 1.85
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/daily/{type}/monthly',
+                        'description' => 'Gets monthly view of daily data',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'year' => 'Year (required, format: YYYY, between 2020-2030)',
+                            'month' => 'Optional month (1-12). If not provided, returns whole year'
+                        ],
+                        'example_request' => [
+                            'url' => '/api/sensor-data/daily/temperature/monthly?year=2025&month=11',
+                            'description' => 'Get daily temperature data for November 2025'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'view' => 'monthly',
+                            'period' => [
+                                'year' => 2025,
+                                'month' => 11,
+                                'month_name' => 'November',
+                                'total_days' => 30
+                            ],
+                            'total_records' => 14,
+                            'data' => [
+                                [
+                                    'date' => '2025-11-14',
+                                    'avg_value' => 25.32,
+                                    'min_value' => 22.1,
+                                    'max_value' => 28.5,
+                                    'std_dev' => 1.85,
+                                    'total_readings' => 86400
+                                ],
+                                [
+                                    'date' => '2025-11-13',
+                                    'avg_value' => 24.98,
+                                    'min_value' => 21.8,
+                                    'max_value' => 27.9,
+                                    'std_dev' => 1.92,
+                                    'total_readings' => 86400
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sensor-data/daily/{type}/weekly',
+                        'description' => 'Gets weekly view of daily data',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'type' => 'Sensor type: temperature|humidity|noise|pressure|eco2|tvoc'
+                        ],
+                        'query_params' => [
+                            'week_start' => 'Week start date (required, format: Y-m-d)',
+                            'weeks' => 'Number of weeks to include (1-12, default: 1)'
+                        ],
+                        'example_request' => [
+                            'url' => '/api/sensor-data/daily/temperature/weekly?week_start=2025-11-11&weeks=2',
+                            'description' => 'Get daily temperature data for 2 weeks from 11/11/2025'
+                        ],
+                        'response' => [
+                            'status' => 'success',
+                            'type' => 'temperature',
+                            'view' => 'weekly',
+                            'period' => [
+                                'start_date' => '2025-11-11',
+                                'end_date' => '2025-11-24',
+                                'weeks_count' => 2
+                            ],
+                            'total_records' => 14,
+                            'data' => [
+                                [
+                                    'week_start' => '2025-11-11',
+                                    'week_end' => '2025-11-17',
+                                    'week_number' => 46,
+                                    'days' => [
+                                        [
+                                            'date' => '2025-11-11',
+                                            'avg_value' => 24.85,
+                                            'min_value' => 22.3,
+                                            'max_value' => 27.2,
+                                            'std_dev' => 1.75
+                                        ],
+                                        [
+                                            'date' => '2025-11-12',
+                                            'avg_value' => 25.12,
+                                            'min_value' => 22.8,
+                                            'max_value' => 28.1,
+                                            'std_dev' => 1.88
+                                        ]
+                                    ]
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
         ];
-
-        return view('api-documentation', compact('apiRoutes'));
     }
 }
