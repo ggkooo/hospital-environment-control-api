@@ -85,24 +85,47 @@ class ProcessCompleteHours extends Command
     private function shouldProcessHour(Carbon $hour): bool
     {
         $hourTimestamp = $hour->format('Y-m-d H:00:00');
-        $nextHour = $hour->copy()->addHour();
 
         // Verifica se já existe dados agregados para esta hora
         if ($this->hourlyDataExists($hourTimestamp)) {
             return false;
         }
 
-        // Verifica se temos pelo menos 50 minutos de dados (permite alguma tolerância)
+        // VALIDAÇÃO RIGOROSA: Verifica se temos pelo menos 50 minutos de dados
         $minMinutesRequired = 50;
 
         foreach ($this->sensorTypes as $sensorType) {
             $minuteCount = DB::table("m_{$sensorType}")
-                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:i:s'))
-                ->where('minute_timestamp', '<', $nextHour->format('Y-m-d H:i:s'))
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
                 ->count();
 
             if ($minuteCount < $minMinutesRequired) {
                 return false;
+            }
+
+            // VALIDAÇÃO ADICIONAL: Verificar cobertura temporal
+            $firstRecord = DB::table("m_{$sensorType}")
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
+                ->orderBy('minute_timestamp')
+                ->first();
+
+            $lastRecord = DB::table("m_{$sensorType}")
+                ->where('minute_timestamp', '>=', $hour->format('Y-m-d H:00:00'))
+                ->where('minute_timestamp', '<=', $hour->format('Y-m-d H:59:59'))
+                ->orderBy('minute_timestamp', 'desc')
+                ->first();
+
+            if ($firstRecord && $lastRecord) {
+                $firstMinute = Carbon::parse($firstRecord->minute_timestamp);
+                $lastMinute = Carbon::parse($lastRecord->minute_timestamp);
+                $coverageMinutes = $lastMinute->diffInMinutes($firstMinute) + 1;
+
+                // Requer pelo menos 45 minutos de cobertura contínua
+                if ($coverageMinutes < 45) {
+                    return false;
+                }
             }
         }
 

@@ -34,6 +34,7 @@ class SensorDataController extends Controller
         }
 
         try {
+            // ETAPA 1: Salvar dados RAPIDAMENTE no storage
             $filename = 'sensor_data_batch_' . Str::uuid() . '.json';
             $tempPath = 'temp/' . $filename;
             $receivedAt = now()->toDateTimeString();
@@ -43,32 +44,25 @@ class SensorDataController extends Controller
                 return $item;
             }, $request->data);
 
+            // Salva arquivo JSON rapidamente
             Storage::put($tempPath, json_encode($sensorDataArray));
 
-            $response = response()->json([
+            // ETAPA 2: Disparar job em BACKGROUND (não bloqueia resposta)
+            ProcessSensorData::dispatch($tempPath, $sensorDataArray);
+
+            // ETAPA 3: Retornar 200 OK IMEDIATAMENTE para o cliente
+            return response()->json([
                 'status' => 'success',
-                'message' => 'Dados recebidos com sucesso',
-                'file' => $filename,
-                'total_records' => count($sensorDataArray)
+                'message' => 'Dados recebidos e processamento iniciado',
+                'batch_id' => str_replace(['sensor_data_batch_', '.json'], '', $filename),
+                'total_records' => count($sensorDataArray),
+                'received_at' => $receivedAt,
+                'processing' => 'background'
             ], 200);
 
-            if (function_exists('fastcgi_finish_request')) {
-                $response->send();
-                fastcgi_finish_request();
-
-                $job = new ProcessSensorData($tempPath, $sensorDataArray);
-                $job->handle();
-            } else {
-                register_shutdown_function(function () use ($tempPath, $sensorDataArray) {
-                    $job = new ProcessSensorData($tempPath, $sensorDataArray);
-                    $job->handle();
-                });
-            }
-
-            return $response;
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Erro interno do servidor',
+                'error' => 'Erro ao receber dados',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -93,7 +87,12 @@ class SensorDataController extends Controller
             ], 400);
         }
 
-        $request->merge(['data' => [$request->only(['temperature', 'humidity', 'noise', 'pression', 'eco2', 'tvoc', 'timestamp'])]]);
+        // Converte dados únicos para array e chama o método store
+        $request->merge([
+            'data' => [$request->only([
+                'temperature', 'humidity', 'noise', 'pression', 'eco2', 'tvoc', 'timestamp'
+            ])]
+        ]);
 
         return $this->store($request);
     }
@@ -414,6 +413,88 @@ class SensorDataController extends Controller
 
         } catch (\Exception $e) {
             return $this->errorResponse('Erro ao buscar comparação', $e->getMessage());
+        }
+    }
+
+    public function getBatchStatus(Request $request, string $batchId): JsonResponse
+    {
+        try {
+            $filename = "sensor_data_batch_{$batchId}.json";
+            $tempPath = "temp/{$filename}";
+
+            // Verifica se o arquivo ainda existe (ainda processando)
+            $isProcessing = Storage::exists($tempPath);
+
+            if ($isProcessing) {
+                return response()->json([
+                    'status' => 'processing',
+                    'batch_id' => $batchId,
+                    'message' => 'Dados ainda sendo processados',
+                    'file_exists' => true
+                ], 200);
+            } else {
+                // Arquivo não existe, pode ter sido processado ou ter erro
+                // Verificar se existe na pasta de erros
+                $errorPath = "errors/{$filename}";
+                $hasError = Storage::exists($errorPath);
+
+                if ($hasError) {
+                    return response()->json([
+                        'status' => 'error',
+                        'batch_id' => $batchId,
+                        'message' => 'Erro no processamento dos dados',
+                        'error_file' => $errorPath
+                    ], 500);
+                } else {
+                    return response()->json([
+                        'status' => 'completed',
+                        'batch_id' => $batchId,
+                        'message' => 'Dados processados com sucesso'
+                    ], 200);
+                }
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao verificar status do lote',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getProcessingStats(): JsonResponse
+    {
+        try {
+            // Conta arquivos em processamento
+            $processingFiles = collect(Storage::files('temp'))
+                ->filter(fn($file) => str_contains($file, 'sensor_data_batch_'))
+                ->count();
+
+            // Conta arquivos com erro
+            $errorFiles = collect(Storage::files('errors'))
+                ->filter(fn($file) => str_contains($file, 'sensor_data_batch_'))
+                ->count();
+
+            // Jobs pendentes na fila
+            $pendingJobs = DB::table('jobs')->count();
+            $failedJobs = DB::table('failed_jobs')->count();
+
+            return response()->json([
+                'status' => 'success',
+                'processing_stats' => [
+                    'files_processing' => $processingFiles,
+                    'files_with_errors' => $errorFiles,
+                    'jobs_pending' => $pendingJobs,
+                    'jobs_failed' => $failedJobs,
+                    'timestamp' => now()->toDateTimeString()
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao obter estatísticas de processamento',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
