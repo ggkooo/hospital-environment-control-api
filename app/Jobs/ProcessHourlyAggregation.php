@@ -52,6 +52,9 @@ class ProcessHourlyAggregation implements ShouldQueue
                 }
             });
 
+            // Verifica e dispara processamento de dia completo se necessário
+            $this->checkAndTriggerDailyProcessing($hourStart);
+
             Log::info('Agregação por hora concluída com sucesso', [
                 'hour' => $this->hourTimestamp,
                 'processed_sensors' => count($this->sensorTypes)
@@ -83,20 +86,62 @@ class ProcessHourlyAggregation implements ShouldQueue
 
     private function processHourlySensor(string $sensorType, Carbon $hourStart, Carbon $hourEnd): void
     {
-        // Busca todos os dados de minuto para esta hora
+        // Busca todos os dados de minuto para esta hora COMPLETA (XX:00 até XX:59)
         $minuteData = DB::table("m_{$sensorType}")
-            ->where('minute_timestamp', '>=', $hourStart->format('Y-m-d H:i:s'))
-            ->where('minute_timestamp', '<', $hourEnd->format('Y-m-d H:i:s'))
+            ->where('minute_timestamp', '>=', $hourStart->format('Y-m-d H:00:00'))
+            ->where('minute_timestamp', '<=', $hourStart->format('Y-m-d H:59:59'))
             ->orderBy('minute_timestamp')
             ->get();
 
         if ($minuteData->isEmpty()) {
             Log::warning("Nenhum dado de minuto encontrado para {$sensorType}", [
-                'hour_start' => $hourStart->format('Y-m-d H:i:s'),
-                'hour_end' => $hourEnd->format('Y-m-d H:i:s')
+                'hour_start' => $hourStart->format('Y-m-d H:00:00'),
+                'hour_end' => $hourStart->format('Y-m-d H:59:59')
             ]);
             return;
         }
+
+        // VALIDAÇÃO RIGOROSA: Verificar se tem pelo menos 50 minutos de dados
+        $minuteCount = $minuteData->count();
+        $minRequiredMinutes = 50; // Mínimo de 50 minutos para processar
+
+        if ($minuteCount < $minRequiredMinutes) {
+            Log::info("Dados insuficientes para hora completa - {$sensorType}", [
+                'hour' => $hourStart->format('Y-m-d H:00:00'),
+                'minutes_found' => $minuteCount,
+                'minimum_required' => $minRequiredMinutes,
+                'coverage_percentage' => round(($minuteCount / 60) * 100, 1) . '%'
+            ]);
+            return; // NÃO processa se não tiver dados suficientes
+        }
+
+        // VALIDAÇÃO DE COBERTURA: Verificar se os dados cobrem a hora adequadamente
+        $firstMinute = Carbon::parse($minuteData->first()->minute_timestamp);
+        $lastMinute = Carbon::parse($minuteData->last()->minute_timestamp);
+
+        // Verificar se a cobertura é de pelo menos 45 minutos contínuos
+        $coverageMinutes = $lastMinute->diffInMinutes($firstMinute) + 1;
+        $minCoverageMinutes = 45;
+
+        if ($coverageMinutes < $minCoverageMinutes) {
+            Log::info("Cobertura temporal insuficiente para hora - {$sensorType}", [
+                'hour' => $hourStart->format('Y-m-d H:00:00'),
+                'first_minute' => $firstMinute->format('H:i'),
+                'last_minute' => $lastMinute->format('H:i'),
+                'coverage_minutes' => $coverageMinutes,
+                'minimum_coverage' => $minCoverageMinutes
+            ]);
+            return; // NÃO processa se a cobertura for insuficiente
+        }
+
+        // APROVADO: Dados suficientes e boa cobertura
+        Log::info("Hora aprovada para processamento - {$sensorType}", [
+            'hour' => $hourStart->format('Y-m-d H:00:00'),
+            'minutes_found' => $minuteCount,
+            'coverage_minutes' => $coverageMinutes,
+            'coverage_percentage' => round(($minuteCount / 60) * 100, 1) . '%',
+            'quality' => $minuteCount >= 55 ? 'EXCELENTE' : ($minuteCount >= 50 ? 'BOA' : 'ACEITÁVEL')
+        ]);
 
         // Calcula estatísticas da hora baseadas nos dados de minuto
         $hourlyStats = $this->calculateHourlyStatistics($minuteData);
@@ -120,7 +165,8 @@ class ProcessHourlyAggregation implements ShouldQueue
             'hour' => $hourStart->format('Y-m-d H:00:00'),
             'minute_count' => $minuteData->count(),
             'avg_value' => round($hourlyStats['average'], 2),
-            'trend' => $hourlyTrend
+            'trend' => $hourlyTrend,
+            'data_quality' => round(($minuteData->count() / 60) * 100, 1) . '% de cobertura'
         ]);
     }
 
@@ -221,6 +267,93 @@ class ProcessHourlyAggregation implements ShouldQueue
             'eco2' => ['max_range' => 150.0, 'max_std_dev' => 75.0],
             'tvoc' => ['max_range' => 75.0, 'max_std_dev' => 35.0]
         ];
+    }
+
+    private function checkAndTriggerDailyProcessing(Carbon $hourStart): void
+    {
+        $dayDate = $hourStart->format('Y-m-d');
+
+        // Verifica se já existe dados agregados para este dia
+        if ($this->dailyDataExists($dayDate)) {
+            return; // Dia já processado
+        }
+
+        // VALIDAÇÃO RIGOROSA: Verifica se temos pelo menos 20 horas de dados no dia
+        $minHoursRequired = 20;
+
+        foreach ($this->sensorTypes as $sensorType) {
+            $hourCount = DB::table("h_{$sensorType}")
+                ->where('hour_timestamp', '>=', $hourStart->format('Y-m-d 00:00:00'))
+                ->where('hour_timestamp', '<=', $hourStart->format('Y-m-d 23:00:00'))
+                ->count();
+
+            if ($hourCount < $minHoursRequired) {
+                return; // Não tem dados suficientes
+            }
+
+            // VALIDAÇÃO ADICIONAL: Verificar cobertura temporal
+            $firstRecord = DB::table("h_{$sensorType}")
+                ->where('hour_timestamp', '>=', $hourStart->format('Y-m-d 00:00:00'))
+                ->where('hour_timestamp', '<=', $hourStart->format('Y-m-d 23:00:00'))
+                ->orderBy('hour_timestamp')
+                ->first();
+
+            $lastRecord = DB::table("h_{$sensorType}")
+                ->where('hour_timestamp', '>=', $hourStart->format('Y-m-d 00:00:00'))
+                ->where('hour_timestamp', '<=', $hourStart->format('Y-m-d 23:00:00'))
+                ->orderBy('hour_timestamp', 'desc')
+                ->first();
+
+            if ($firstRecord && $lastRecord) {
+                $firstHour = Carbon::parse($firstRecord->hour_timestamp);
+                $lastHour = Carbon::parse($lastRecord->hour_timestamp);
+                $coverageHours = $lastHour->diffInHours($firstHour) + 1;
+
+                // Requer pelo menos 18 horas de cobertura contínua
+                if ($coverageHours < 18) {
+                    return; // Cobertura insuficiente
+                }
+            }
+        }
+
+        // APROVADO: Dia completo - disparar processamento diário
+        $this->dispatchDailyProcessing($dayDate);
+    }
+
+    private function dailyDataExists(string $dayDate): bool
+    {
+        foreach ($this->sensorTypes as $sensorType) {
+            $exists = DB::table("d_{$sensorType}")
+                ->where('day_date', $dayDate)
+                ->exists();
+
+            if ($exists) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function dispatchDailyProcessing(string $dayDate): void
+    {
+        try {
+            // Importa a classe do Job de agregação diária
+            $dailyJobClass = \App\Jobs\ProcessDailyAggregation::class;
+
+            // Dispatch do job para processar este dia
+            $dailyJobClass::dispatch($dayDate);
+
+            Log::info('Job de agregação diária disparado automaticamente', [
+                'day' => $dayDate,
+                'triggered_by' => 'ProcessHourlyAggregation'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao disparar job de agregação diária', [
+                'day' => $dayDate,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     public function failed(\Throwable $exception): void
