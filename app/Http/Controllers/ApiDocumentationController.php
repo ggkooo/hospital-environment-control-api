@@ -825,6 +825,147 @@ class ApiDocumentationController extends Controller
                         ]
                     ]
                 ]
+            ],
+            [
+                'group' => 'User Management',
+                'routes' => [
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/users',
+                        'description' => 'List all users',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'response' => [
+                            'data' => [
+                                [
+                                    'id' => 1,
+                                    'name' => 'João Silva',
+                                    'email' => 'joao@example.com',
+                                    'phone' => '+55 11 99999-9999',
+                                    'sector' => 'Emergency',
+                                    'role' => 'Doctor',
+                                    'active' => true,
+                                    'created_at' => '2025-11-14 08:00:00',
+                                    'updated_at' => '2025-11-14 08:00:00',
+                                    'last_login' => null
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/users',
+                        'description' => 'Create a new user',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'body' => [
+                            'name' => 'João Silva',
+                            'email' => 'joao@example.com',
+                            'phone' => '+55 11 99999-9999',
+                            'sector' => 'Emergency',
+                            'role' => 'Doctor'
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'João Silva',
+                            'email' => 'joao@example.com',
+                            'phone' => '+55 11 99999-9999',
+                            'sector' => 'Emergency',
+                            'role' => 'Doctor',
+                            'active' => true,
+                            'created_at' => '2025-11-14 08:00:00',
+                            'updated_at' => '2025-11-14 08:00:00',
+                            'last_login' => null
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/users/{id}',
+                        'description' => 'Get a specific user by ID',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'User ID'
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'João Silva',
+                            'email' => 'joao@example.com',
+                            'phone' => '+55 11 99999-9999',
+                            'sector' => 'Emergency',
+                            'role' => 'Doctor',
+                            'active' => true,
+                            'created_at' => '2025-11-14 08:00:00',
+                            'updated_at' => '2025-11-14 08:00:00',
+                            'last_login' => null
+                        ]
+                    ],
+                    [
+                        'method' => 'PUT',
+                        'endpoint' => '/api/users/{id}',
+                        'description' => 'Update a user',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'parameters' => [
+                            'id' => 'User ID'
+                        ],
+                        'body' => [
+                            'name' => 'João Silva Atualizado',
+                            'email' => 'joao@example.com',
+                            'phone' => '+55 11 99999-9999',
+                            'sector' => 'Emergency',
+                            'role' => 'Doctor',
+                            'active' => true
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'João Silva Atualizado',
+                            'email' => 'joao@example.com',
+                            'phone' => '+55 11 99999-9999',
+                            'sector' => 'Emergency',
+                            'role' => 'Doctor',
+                            'active' => true,
+                            'created_at' => '2025-11-14 08:00:00',
+                            'updated_at' => '2025-11-14 08:00:00',
+                            'last_login' => null
+                        ]
+                    ],
+                    [
+                        'method' => 'DELETE',
+                        'endpoint' => '/api/users/{id}',
+                        'description' => 'Delete a user',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'User ID'
+                        ],
+                        'response' => [
+                            'message' => 'User deleted successfully'
+                        ]
+                    ],
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/password/reset-link',
+                        'description' => 'Send password reset link to user email',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'body' => [
+                            'email' => 'joao@example.com'
+                        ],
+                        'response' => [
+                            'message' => 'Password reset link sent to your email.'
+                        ]
+                    ]
+                ]
             ]
         ];
     }
