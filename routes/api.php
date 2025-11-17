@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorDataController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\PasswordResetController;
 
 // Rotas de documentação (sem autenticação)
 // Route::get('/docs', [DocumentationController::class, 'index'])->name('api.docs');
@@ -88,4 +90,11 @@ Route::middleware('api.key')->group(function () {
     Route::get('/sensor-data/daily/{type}/weekly', [SensorDataController::class, 'getDailyWeeklyView'])
         ->name('sensor.data.daily.weekly')
         ->where('type', 'temperature|humidity|noise|pressure|eco2|tvoc');
+
+    // Rotas para usuários
+    Route::apiResource('users', UserController::class);
+
+    // Rota para recuperação de senha
+    Route::post('/password/reset-link', [PasswordResetController::class, 'sendResetLink'])
+        ->name('password.reset.link');
 });
