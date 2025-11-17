@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\SectorController;
 
 // Rotas de documentação (sem autenticação)
 // Route::get('/docs', [DocumentationController::class, 'index'])->name('api.docs');
@@ -93,6 +94,9 @@ Route::middleware('api.key')->group(function () {
 
     // Rotas para usuários
     Route::apiResource('users', UserController::class);
+
+    // Rotas para setores
+    Route::apiResource('sectors', SectorController::class);
 
     // Rota para recuperação de senha
     Route::post('/password/reset-link', [PasswordResetController::class, 'sendResetLink'])

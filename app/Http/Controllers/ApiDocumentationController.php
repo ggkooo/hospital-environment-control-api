@@ -966,6 +966,145 @@ class ApiDocumentationController extends Controller
                         ]
                     ]
                 ]
+            ],
+            [
+                'group' => 'Sectors',
+                'routes' => [
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sectors',
+                        'description' => 'List all hospital sectors',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'response' => [
+                            [
+                                'id' => 1,
+                                'name' => 'Cardiology',
+                                'description' => 'Cardiology department',
+                                'chief' => 'Dr. João Silva',
+                                'location' => 'Wing A, 2nd floor',
+                                'phone' => '(11) 99999-9999',
+                                'capacity' => 50,
+                                'active' => false,
+                                'created_at' => '2025-11-17T13:00:00.000000Z',
+                                'updated_at' => '2025-11-17T13:00:00.000000Z'
+                            ],
+                            [
+                                'id' => 2,
+                                'name' => 'Pediatrics',
+                                'description' => null,
+                                'chief' => null,
+                                'location' => null,
+                                'phone' => null,
+                                'capacity' => null,
+                                'active' => false,
+                                'created_at' => '2025-11-17T13:05:00.000000Z',
+                                'updated_at' => '2025-11-17T13:05:00.000000Z'
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/sectors',
+                        'description' => 'Create a new hospital sector',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'body' => [
+                            'name' => 'Orthopedics',
+                            'description' => 'Orthopedics department',
+                            'chief' => 'Dr. Maria Santos',
+                            'location' => 'Wing B, 1st floor',
+                            'phone' => '(11) 88888-8888',
+                            'capacity' => 30,
+                            'active' => true
+                        ],
+                        'response' => [
+                            'id' => 3,
+                            'name' => 'Orthopedics',
+                            'description' => 'Orthopedics department',
+                            'chief' => 'Dr. Maria Santos',
+                            'location' => 'Wing B, 1st floor',
+                            'phone' => '(11) 88888-8888',
+                            'capacity' => 30,
+                            'active' => true,
+                            'created_at' => '2025-11-17T13:10:00.000000Z',
+                            'updated_at' => '2025-11-17T13:10:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/sectors/{id}',
+                        'description' => 'Get a specific sector by ID',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'Sector ID'
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'Cardiology',
+                            'description' => 'Cardiology department',
+                            'chief' => 'Dr. João Silva',
+                            'location' => 'Wing A, 2nd floor',
+                            'phone' => '(11) 99999-9999',
+                            'capacity' => 50,
+                            'active' => false,
+                            'created_at' => '2025-11-17T13:00:00.000000Z',
+                            'updated_at' => '2025-11-17T13:00:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'PUT',
+                        'endpoint' => '/api/sectors/{id}',
+                        'description' => 'Update a sector',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'parameters' => [
+                            'id' => 'Sector ID'
+                        ],
+                        'body' => [
+                            'name' => 'Cardiology Updated',
+                            'description' => 'Cardiology department',
+                            'chief' => 'Dr. João Silva',
+                            'location' => 'Wing A, 2nd floor',
+                            'phone' => '(11) 99999-9999',
+                            'capacity' => 60,
+                            'active' => true
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'Cardiology Updated',
+                            'description' => 'Cardiology department',
+                            'chief' => 'Dr. João Silva',
+                            'location' => 'Wing A, 2nd floor',
+                            'phone' => '(11) 99999-9999',
+                            'capacity' => 60,
+                            'active' => true,
+                            'created_at' => '2025-11-17T13:00:00.000000Z',
+                            'updated_at' => '2025-11-17T13:15:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'DELETE',
+                        'endpoint' => '/api/sectors/{id}',
+                        'description' => 'Delete a sector',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'Sector ID'
+                        ],
+                        'response' => [
+                            'message' => 'Sector deleted successfully'
+                        ]
+                    ]
+                ]
             ]
         ];
     }
