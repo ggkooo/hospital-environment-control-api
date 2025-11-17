@@ -109,6 +109,30 @@
             }
         }
 
+        .header-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        /* Responsividade para header-bottom */
+        @media (max-width: 768px) {
+            .header-bottom {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                margin-top: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-bottom {
+                gap: 10px;
+                margin-top: 12px;
+            }
+        }
+
         .auth-info {
             display: flex;
             gap: 10px;
@@ -144,6 +168,48 @@
             background: #ecfccb;
             color: #365314;
         }
+
+        .search-container {
+            width: 250px;
+            margin-left: 2rem;
+            margin-right: 2rem;
+            box-sizing: border-box;
+        }
+
+        /* Responsividade para search-container */
+        @media (max-width: 768px) {
+            .search-container {
+                width: 200px;
+                margin-left: 1rem;
+                margin-right: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-container {
+                width: 100%;
+                margin-left: 0;
+                margin-right: 0;
+            }
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #ffffff;
+            color: #374151;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            outline: 3px solid rgba(132, 204, 22, 0.3);
+            outline-offset: -3px;
+            border-color: #84cc16;
+        }
+
         .section {
             background: white;
             border-radius: 8px;
@@ -505,6 +571,33 @@
             background: #ecfccb;
             color: #365314;
         }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            font-size: 1.1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Responsividade para no-results */
+        @media (max-width: 768px) {
+            .no-results {
+                padding: 30px 15px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .no-results {
+                padding: 20px 10px;
+                font-size: 0.9rem;
+            }
+        }
+
         .footer {
             text-align: center;
             font-size: 14px;
@@ -601,9 +694,14 @@
         <div class="header">
             <h1>{{ $translations['title'] }}</h1>
             <p>{{ $translations['description'] }}</p>
-            <div class="auth-info">
-                <span class="badge">{{ $translations['authentication'] }}</span>
-                <span class="badge api">{{ $translations['base_url'] }}</span>
+            <div class="header-bottom">
+                <div class="auth-info">
+                    <span class="badge">{{ $translations['authentication'] }}</span>
+                    <span class="badge api">{{ $translations['base_url'] }}</span>
+                </div>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search sections..." class="search-input">
+                </div>
             </div>
         </div>
 
@@ -693,6 +791,11 @@
         </div>
         @endforeach
 
+        <!-- No Results Message -->
+        <div id="no-results" class="no-results" style="display: none;">
+            <p>No results found for your search. Try a different term.</p>
+        </div>
+
         <!-- Footer -->
         <div class="footer">
             <p><a href="https://github.com/ggkooo" target="_blank" rel="external">Giordano Bruno Biasi Berwig</a> | <strong>{{ $translations['footer_text'] }}</strong> | {{ date('Y') }}</p>
@@ -729,6 +832,34 @@
                         this.style.backgroundColor = '';
                     }, 150);
                 });
+            });
+
+            // Search functionality
+            const searchInput = document.getElementById('search-input');
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const sections = document.querySelectorAll('.section');
+                let resultsFound = false;
+
+                sections.forEach(section => {
+                    const header = section.querySelector('.section-header h2');
+                    const headerText = header.textContent.toLowerCase();
+
+                    if (headerText.includes(searchTerm)) {
+                        section.style.display = 'block';
+                        resultsFound = true;
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+
+                // Show or hide the no results message
+                const noResultsMessage = document.getElementById('no-results');
+                if (resultsFound) {
+                    noResultsMessage.style.display = 'none';
+                } else {
+                    noResultsMessage.style.display = 'block';
+                }
             });
         });
     </script>
