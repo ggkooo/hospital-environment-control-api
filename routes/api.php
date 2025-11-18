@@ -6,6 +6,7 @@ use App\Http\Controllers\SensorDataController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\SectorController;
+use App\Http\Controllers\RoleController;
 
 // Rotas de documentação (sem autenticação)
 // Route::get('/docs', [DocumentationController::class, 'index'])->name('api.docs');
@@ -97,6 +98,9 @@ Route::middleware('api.key')->group(function () {
 
     // Rotas para setores
     Route::apiResource('sectors', SectorController::class);
+    // Rotas para roles
+    Route::apiResource('roles', RoleController::class);
+
 
     // Rota para recuperação de senha
     Route::post('/password/reset-link', [PasswordResetController::class, 'sendResetLink'])
