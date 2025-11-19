@@ -1105,6 +1105,125 @@ class ApiDocumentationController extends Controller
                         ]
                     ]
                 ]
+            ],
+            [
+                'group' => 'Roles',
+                'routes' => [
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/roles',
+                        'description' => 'List all roles',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'response' => [
+                            [
+                                'id' => 1,
+                                'name' => 'Doctor',
+                                'description' => 'Medical doctor role',
+                                'chief' => 'Dr. João Silva',
+                                'sector' => 'Cardiology',
+                                'status' => 'active',
+                                'permissions' => ['/', '/temperature'],
+                                'created_at' => '2025-11-18T10:00:00.000000Z',
+                                'updated_at' => '2025-11-18T10:00:00.000000Z'
+                            ]
+                        ]
+                    ],
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/roles',
+                        'description' => 'Create a new role',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'body' => [
+                            'name' => 'Nurse',
+                            'description' => 'Nursing staff',
+                            'sector' => 'Cardiology',
+                            'status' => 'active',
+                            'permissions' => ['/', '/temperature']
+                        ],
+                        'response' => [
+                            'id' => 2,
+                            'name' => 'Nurse',
+                            'description' => 'Nursing staff',
+                            'chief' => 'Dr. João Silva',
+                            'sector' => 'Cardiology',
+                            'status' => 'active',
+                            'permissions' => ['/', '/temperature'],
+                            'created_at' => '2025-11-18T10:05:00.000000Z',
+                            'updated_at' => '2025-11-18T10:05:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'GET',
+                        'endpoint' => '/api/roles/{id}',
+                        'description' => 'Get a specific role by ID',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'Role ID'
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'Doctor',
+                            'description' => 'Medical doctor role',
+                            'chief' => 'Dr. João Silva',
+                            'sector' => 'Cardiology',
+                            'status' => 'active',
+                            'permissions' => ['/', '/temperature'],
+                            'created_at' => '2025-11-18T10:00:00.000000Z',
+                            'updated_at' => '2025-11-18T10:00:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'PUT',
+                        'endpoint' => '/api/roles/{id}',
+                        'description' => 'Update a role',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'application/json'
+                        ],
+                        'parameters' => [
+                            'id' => 'Role ID'
+                        ],
+                        'body' => [
+                            'name' => 'Senior Doctor',
+                            'description' => 'Senior medical doctor',
+                            'sector' => 'Cardiology',
+                            'status' => 'active',
+                            'permissions' => ['/', '/temperature', '/humidity']
+                        ],
+                        'response' => [
+                            'id' => 1,
+                            'name' => 'Senior Doctor',
+                            'description' => 'Senior medical doctor',
+                            'chief' => 'Dr. João Silva',
+                            'sector' => 'Cardiology',
+                            'status' => 'active',
+                            'permissions' => ['/', '/temperature', '/humidity'],
+                            'created_at' => '2025-11-18T10:00:00.000000Z',
+                            'updated_at' => '2025-11-18T10:10:00.000000Z'
+                        ]
+                    ],
+                    [
+                        'method' => 'DELETE',
+                        'endpoint' => '/api/roles/{id}',
+                        'description' => 'Delete a role',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key'
+                        ],
+                        'parameters' => [
+                            'id' => 'Role ID'
+                        ],
+                        'response' => [
+                            'message' => 'Role deleted'
+                        ]
+                    ]
+                ]
             ]
         ];
     }

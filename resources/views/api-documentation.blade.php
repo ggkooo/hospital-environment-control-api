@@ -111,7 +111,7 @@
 
         .header-bottom {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             margin-top: 20px;
         }
@@ -170,8 +170,8 @@
         }
 
         .search-container {
-            width: 250px;
-            margin-left: 2rem;
+            width: 200px;
+            margin-left: auto;
             margin-right: 2rem;
             box-sizing: border-box;
         }
@@ -689,24 +689,24 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>{{ $translations['title'] }}</h1>
-            <p>{{ $translations['description'] }}</p>
-            <div class="header-bottom">
-                <div class="auth-info">
-                    <span class="badge">{{ $translations['authentication'] }}</span>
-                    <span class="badge api">{{ $translations['base_url'] }}</span>
-                </div>
-                <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Search sections..." class="search-input">
-                </div>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>{{ $translations['title'] }}</h1>
+        <p>{{ $translations['description'] }}</p>
+        <div class="header-bottom">
+            <div class="auth-info">
+                <span class="badge">{{ $translations['authentication'] }}</span>
+                <span class="badge api">{{ $translations['base_url'] }}</span>
+            </div>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search sections..." class="search-input">
             </div>
         </div>
+    </div>
 
-        <!-- API Endpoints -->
-        @foreach($apiRoutes as $groupIndex => $group)
+    <!-- API Endpoints -->
+    @foreach($apiRoutes as $groupIndex => $group)
         <div class="section">
             <div class="section-header">
                 <h2>{{ $group['group'] }}</h2>
@@ -714,154 +714,154 @@
 
             <div>
                 @foreach($group['routes'] as $routeIndex => $route)
-                <div class="route-item">
-                    <button class="route-button" onclick="toggleRoute({{ $groupIndex }}, {{ $routeIndex }})">
-                        <div class="route-header">
-                            <div class="route-info">
+                    <div class="route-item">
+                        <button class="route-button" onclick="toggleRoute({{ $groupIndex }}, {{ $routeIndex }})">
+                            <div class="route-header">
+                                <div class="route-info">
                                 <span class="method-badge {{ $route['method'] === 'GET' ? 'method-get' : 'method-post' }}">
                                     {{ $route['method'] }}
                                 </span>
-                                <code class="endpoint">{{ $route['endpoint'] }}</code>
+                                    <code class="endpoint">{{ $route['endpoint'] }}</code>
+                                </div>
+                                <svg class="arrow" id="arrow-{{ $groupIndex }}-{{ $routeIndex }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
                             </div>
-                            <svg class="arrow" id="arrow-{{ $groupIndex }}-{{ $routeIndex }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                        <p class="description">{{ $route['description'] }}</p>
-                    </button>
+                            <p class="description">{{ $route['description'] }}</p>
+                        </button>
 
-                    <div class="route-details" id="details-{{ $groupIndex }}-{{ $routeIndex }}">
-                        @if(isset($route['headers']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['headers'] }}</div>
-                            <div class="code-block">@foreach($route['headers'] as $header => $value){{ $header }}: {{ $value }}
-@endforeach</div>
-                        </div>
-                        @endif
+                        <div class="route-details" id="details-{{ $groupIndex }}-{{ $routeIndex }}">
+                            @if(isset($route['headers']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['headers'] }}</div>
+                                    <div class="code-block">@foreach($route['headers'] as $header => $value){{ $header }}: {{ $value }}
+                                        @endforeach</div>
+                                </div>
+                            @endif
 
-                        @if(isset($route['parameters']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['parameters'] }}</div>
-                            @foreach($route['parameters'] as $param => $desc)
-                            <div class="param-item">
-                                <code class="param-name">{{ $param }}</code> - {{ $desc }}
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
+                            @if(isset($route['parameters']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['parameters'] }}</div>
+                                    @foreach($route['parameters'] as $param => $desc)
+                                        <div class="param-item">
+                                            <code class="param-name">{{ $param }}</code> - {{ $desc }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
 
-                        @if(isset($route['query_params']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['query_params'] }}</div>
-                            @foreach($route['query_params'] as $param => $desc)
-                            <div class="param-item">
-                                <code class="param-name query">{{ $param }}</code> - {{ $desc }}
-                            </div>
-                            @endforeach
-                        </div>
-                        @endif
+                            @if(isset($route['query_params']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['query_params'] }}</div>
+                                    @foreach($route['query_params'] as $param => $desc)
+                                        <div class="param-item">
+                                            <code class="param-name query">{{ $param }}</code> - {{ $desc }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
 
-                        @if(isset($route['example_request']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['request_example'] }}</div>
-                            <div class="code-block">GET {{ $route['example_request']['url'] }}</div>
-                            <div style="margin-top: 8px; font-size: 0.85rem; color: #6b7280;">
-                                {{ $route['example_request']['description'] }}
-                            </div>
-                        </div>
-                        @endif
+                            @if(isset($route['example_request']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['request_example'] }}</div>
+                                    <div class="code-block">GET {{ $route['example_request']['url'] }}</div>
+                                    <div style="margin-top: 8px; font-size: 0.85rem; color: #6b7280;">
+                                        {{ $route['example_request']['description'] }}
+                                    </div>
+                                </div>
+                            @endif
 
-                        @if(isset($route['body']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['request_body'] }}</div>
-                            <div class="code-block">{{ json_encode($route['body'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
-                        </div>
-                        @endif
+                            @if(isset($route['body']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['request_body'] }}</div>
+                                    <div class="code-block">{{ json_encode($route['body'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
+                                </div>
+                            @endif
 
-                        @if(isset($route['response']))
-                        <div class="detail-section">
-                            <div class="detail-title">{{ $translations['response_example'] }}</div>
-                            <div class="code-block">{{ json_encode($route['response'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
+                            @if(isset($route['response']))
+                                <div class="detail-section">
+                                    <div class="detail-title">{{ $translations['response_example'] }}</div>
+                                    <div class="code-block">{{ json_encode($route['response'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</div>
+                                </div>
+                            @endif
                         </div>
-                        @endif
                     </div>
-                </div>
                 @endforeach
             </div>
         </div>
-        @endforeach
+    @endforeach
 
-        <!-- No Results Message -->
-        <div id="no-results" class="no-results" style="display: none;">
-            <p>No results found for your search. Try a different term.</p>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <p><a href="https://github.com/ggkooo" target="_blank" rel="external">Giordano Bruno Biasi Berwig</a> | <strong>{{ $translations['footer_text'] }}</strong> | {{ date('Y') }}</p>
-        </div>
+    <!-- No Results Message -->
+    <div id="no-results" class="no-results" style="display: none;">
+        <p>No results found for your search. Try a different term.</p>
     </div>
 
-    <script>
-        function toggleRoute(groupIndex, routeIndex) {
-            const details = document.getElementById(`details-${groupIndex}-${routeIndex}`);
-            const arrow = document.getElementById(`arrow-${groupIndex}-${routeIndex}`);
+    <!-- Footer -->
+    <div class="footer">
+        <p><a href="https://github.com/ggkooo" target="_blank" rel="external">Giordano Bruno Biasi Berwig</a> | <strong>{{ $translations['footer_text'] }}</strong> | {{ date('Y') }}</p>
+    </div>
+</div>
 
-            if (details.classList.contains('show')) {
-                details.classList.remove('show');
-                arrow.style.transform = 'rotate(0deg)';
-            } else {
-                details.classList.add('show');
-                arrow.style.transform = 'rotate(180deg)';
-            }
+<script>
+    function toggleRoute(groupIndex, routeIndex) {
+        const details = document.getElementById(`details-${groupIndex}-${routeIndex}`);
+        const arrow = document.getElementById(`arrow-${groupIndex}-${routeIndex}`);
+
+        if (details.classList.contains('show')) {
+            details.classList.remove('show');
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            details.classList.add('show');
+            arrow.style.transform = 'rotate(180deg)';
         }
+    }
 
 
-        // Improved accessibility for mobile devices
-        document.addEventListener('DOMContentLoaded', function() {
-            // Adds touch support for better mobile experience
-            const routeButtons = document.querySelectorAll('.route-button');
+    // Improved accessibility for mobile devices
+    document.addEventListener('DOMContentLoaded', function() {
+        // Adds touch support for better mobile experience
+        const routeButtons = document.querySelectorAll('.route-button');
 
-            routeButtons.forEach(button => {
-                button.addEventListener('touchstart', function() {
-                    this.style.backgroundColor = '#f3f4f6';
-                });
-
-                button.addEventListener('touchend', function() {
-                    setTimeout(() => {
-                        this.style.backgroundColor = '';
-                    }, 150);
-                });
+        routeButtons.forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.style.backgroundColor = '#f3f4f6';
             });
 
-            // Search functionality
-            const searchInput = document.getElementById('search-input');
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const sections = document.querySelectorAll('.section');
-                let resultsFound = false;
-
-                sections.forEach(section => {
-                    const header = section.querySelector('.section-header h2');
-                    const headerText = header.textContent.toLowerCase();
-
-                    if (headerText.includes(searchTerm)) {
-                        section.style.display = 'block';
-                        resultsFound = true;
-                    } else {
-                        section.style.display = 'none';
-                    }
-                });
-
-                // Show or hide the no results message
-                const noResultsMessage = document.getElementById('no-results');
-                if (resultsFound) {
-                    noResultsMessage.style.display = 'none';
-                } else {
-                    noResultsMessage.style.display = 'block';
-                }
+            button.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.backgroundColor = '';
+                }, 150);
             });
         });
-    </script>
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const sections = document.querySelectorAll('.section');
+            let resultsFound = false;
+
+            sections.forEach(section => {
+                const header = section.querySelector('.section-header h2');
+                const headerText = header.textContent.toLowerCase();
+
+                if (headerText.includes(searchTerm)) {
+                    section.style.display = 'block';
+                    resultsFound = true;
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+
+            // Show or hide the no results message
+            const noResultsMessage = document.getElementById('no-results');
+            if (resultsFound) {
+                noResultsMessage.style.display = 'none';
+            } else {
+                noResultsMessage.style.display = 'block';
+            }
+        });
+    });
+</script>
 </body>
 </html>
