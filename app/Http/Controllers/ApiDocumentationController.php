@@ -1034,6 +1034,37 @@ class ApiDocumentationController extends Controller
                 ]
             ],
             [
+                'group' => 'Authentication',
+                'routes' => [
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/login',
+                        'description' => 'Authenticate user and get access token',
+                        'headers' => [
+                            'Content-Type' => 'application/json'
+                        ],
+                        'body' => [
+                            'email' => 'user@example.com',
+                            'password' => 'password'
+                        ],
+                        'response' => [
+                            'message' => 'Login successful',
+                            'token' => 'your-access-token',
+                            'user' => [
+                                'id' => 1,
+                                'name' => 'John Doe',
+                                'email' => 'john@example.com',
+                                'phone' => '123456789',
+                                'sector' => 'Cardiology',
+                                'role' => 'Doctor',
+                                'active' => true,
+                                'last_login' => '2025-11-19 13:42:10'
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
                 'group' => 'Password Reset',
                 'routes' => [
                     [
