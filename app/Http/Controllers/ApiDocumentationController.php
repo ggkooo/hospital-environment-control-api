@@ -827,7 +827,7 @@ class ApiDocumentationController extends Controller
                 ]
             ],
             [
-                'group' => 'User Management',
+                'group' => 'Users',
                 'routes' => [
                     [
                         'method' => 'GET',
@@ -840,15 +840,13 @@ class ApiDocumentationController extends Controller
                             'data' => [
                                 [
                                     'id' => 1,
-                                    'name' => 'João Silva',
-                                    'email' => 'joao@example.com',
-                                    'phone' => '+55 11 99999-9999',
-                                    'sector' => 'Emergency',
+                                    'name' => 'John Doe',
+                                    'email' => 'john@example.com',
+                                    'phone' => '123456789',
+                                    'sector' => 'Cardiology',
                                     'role' => 'Doctor',
                                     'active' => true,
-                                    'created_at' => '2025-11-14 08:00:00',
-                                    'updated_at' => '2025-11-14 08:00:00',
-                                    'last_login' => null
+                                    'last_login' => '2025-11-14 10:00:00'
                                 ]
                             ]
                         ]
@@ -862,29 +860,30 @@ class ApiDocumentationController extends Controller
                             'Content-Type' => 'application/json'
                         ],
                         'body' => [
-                            'name' => 'João Silva',
-                            'email' => 'joao@example.com',
-                            'phone' => '+55 11 99999-9999',
-                            'sector' => 'Emergency',
-                            'role' => 'Doctor'
+                            'name' => 'Jane Doe',
+                            'email' => 'jane@example.com',
+                            'password' => 'password123',
+                            'phone' => '987654321',
+                            'sector' => 'Neurology',
+                            'role' => 'Nurse'
                         ],
                         'response' => [
-                            'id' => 1,
-                            'name' => 'João Silva',
-                            'email' => 'joao@example.com',
-                            'phone' => '+55 11 99999-9999',
-                            'sector' => 'Emergency',
-                            'role' => 'Doctor',
-                            'active' => true,
-                            'created_at' => '2025-11-14 08:00:00',
-                            'updated_at' => '2025-11-14 08:00:00',
-                            'last_login' => null
+                            'data' => [
+                                'id' => 2,
+                                'name' => 'Jane Doe',
+                                'email' => 'jane@example.com',
+                                'phone' => '987654321',
+                                'sector' => 'Neurology',
+                                'role' => 'Nurse',
+                                'active' => true,
+                                'created_at' => '2025-11-14 10:00:00'
+                            ]
                         ]
                     ],
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/users/{id}',
-                        'description' => 'Get a specific user by ID',
+                        'description' => 'Get a specific user',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
@@ -892,16 +891,16 @@ class ApiDocumentationController extends Controller
                             'id' => 'User ID'
                         ],
                         'response' => [
-                            'id' => 1,
-                            'name' => 'João Silva',
-                            'email' => 'joao@example.com',
-                            'phone' => '+55 11 99999-9999',
-                            'sector' => 'Emergency',
-                            'role' => 'Doctor',
-                            'active' => true,
-                            'created_at' => '2025-11-14 08:00:00',
-                            'updated_at' => '2025-11-14 08:00:00',
-                            'last_login' => null
+                            'data' => [
+                                'id' => 1,
+                                'name' => 'John Doe',
+                                'email' => 'john@example.com',
+                                'phone' => '123456789',
+                                'sector' => 'Cardiology',
+                                'role' => 'Doctor',
+                                'active' => true,
+                                'last_login' => '2025-11-14 10:00:00'
+                            ]
                         ]
                     ],
                     [
@@ -916,24 +915,20 @@ class ApiDocumentationController extends Controller
                             'id' => 'User ID'
                         ],
                         'body' => [
-                            'name' => 'João Silva Atualizado',
-                            'email' => 'joao@example.com',
-                            'phone' => '+55 11 99999-9999',
-                            'sector' => 'Emergency',
-                            'role' => 'Doctor',
-                            'active' => true
+                            'name' => 'John Smith',
+                            'phone' => '111222333'
                         ],
                         'response' => [
-                            'id' => 1,
-                            'name' => 'João Silva Atualizado',
-                            'email' => 'joao@example.com',
-                            'phone' => '+55 11 99999-9999',
-                            'sector' => 'Emergency',
-                            'role' => 'Doctor',
-                            'active' => true,
-                            'created_at' => '2025-11-14 08:00:00',
-                            'updated_at' => '2025-11-14 08:00:00',
-                            'last_login' => null
+                            'data' => [
+                                'id' => 1,
+                                'name' => 'John Smith',
+                                'email' => 'john@example.com',
+                                'phone' => '111222333',
+                                'sector' => 'Cardiology',
+                                'role' => 'Doctor',
+                                'active' => true,
+                                'updated_at' => '2025-11-14 10:00:00'
+                            ]
                         ]
                     ],
                     [
@@ -949,21 +944,6 @@ class ApiDocumentationController extends Controller
                         'response' => [
                             'message' => 'User deleted successfully'
                         ]
-                    ],
-                    [
-                        'method' => 'POST',
-                        'endpoint' => '/api/password/reset-link',
-                        'description' => 'Send password reset link to user email',
-                        'headers' => [
-                            'X-API-Key' => 'your-api-key',
-                            'Content-Type' => 'application/json'
-                        ],
-                        'body' => [
-                            'email' => 'joao@example.com'
-                        ],
-                        'response' => [
-                            'message' => 'Password reset link sent to your email.'
-                        ]
                     ]
                 ]
             ],
@@ -973,135 +953,39 @@ class ApiDocumentationController extends Controller
                     [
                         'method' => 'GET',
                         'endpoint' => '/api/sectors',
-                        'description' => 'List all hospital sectors',
+                        'description' => 'List all sectors',
                         'headers' => [
                             'X-API-Key' => 'your-api-key'
                         ],
                         'response' => [
-                            [
-                                'id' => 1,
-                                'name' => 'Cardiology',
-                                'description' => 'Cardiology department',
-                                'chief' => 'Dr. João Silva',
-                                'location' => 'Wing A, 2nd floor',
-                                'phone' => '(11) 99999-9999',
-                                'capacity' => 50,
-                                'active' => false,
-                                'created_at' => '2025-11-17T13:00:00.000000Z',
-                                'updated_at' => '2025-11-17T13:00:00.000000Z'
-                            ],
-                            [
-                                'id' => 2,
-                                'name' => 'Pediatrics',
-                                'description' => null,
-                                'chief' => null,
-                                'location' => null,
-                                'phone' => null,
-                                'capacity' => null,
-                                'active' => false,
-                                'created_at' => '2025-11-17T13:05:00.000000Z',
-                                'updated_at' => '2025-11-17T13:05:00.000000Z'
+                            'data' => [
+                                [
+                                    'id' => 1,
+                                    'name' => 'Cardiology',
+                                    'description' => 'Heart care department'
+                                ]
                             ]
                         ]
                     ],
                     [
                         'method' => 'POST',
                         'endpoint' => '/api/sectors',
-                        'description' => 'Create a new hospital sector',
+                        'description' => 'Create a new sector',
                         'headers' => [
                             'X-API-Key' => 'your-api-key',
                             'Content-Type' => 'application/json'
                         ],
                         'body' => [
-                            'name' => 'Orthopedics',
-                            'description' => 'Orthopedics department',
-                            'chief' => 'Dr. Maria Santos',
-                            'location' => 'Wing B, 1st floor',
-                            'phone' => '(11) 88888-8888',
-                            'capacity' => 30,
-                            'active' => true
+                            'name' => 'Neurology',
+                            'description' => 'Brain care department'
                         ],
                         'response' => [
-                            'id' => 3,
-                            'name' => 'Orthopedics',
-                            'description' => 'Orthopedics department',
-                            'chief' => 'Dr. Maria Santos',
-                            'location' => 'Wing B, 1st floor',
-                            'phone' => '(11) 88888-8888',
-                            'capacity' => 30,
-                            'active' => true,
-                            'created_at' => '2025-11-17T13:10:00.000000Z',
-                            'updated_at' => '2025-11-17T13:10:00.000000Z'
-                        ]
-                    ],
-                    [
-                        'method' => 'GET',
-                        'endpoint' => '/api/sectors/{id}',
-                        'description' => 'Get a specific sector by ID',
-                        'headers' => [
-                            'X-API-Key' => 'your-api-key'
-                        ],
-                        'parameters' => [
-                            'id' => 'Sector ID'
-                        ],
-                        'response' => [
-                            'id' => 1,
-                            'name' => 'Cardiology',
-                            'description' => 'Cardiology department',
-                            'chief' => 'Dr. João Silva',
-                            'location' => 'Wing A, 2nd floor',
-                            'phone' => '(11) 99999-9999',
-                            'capacity' => 50,
-                            'active' => false,
-                            'created_at' => '2025-11-17T13:00:00.000000Z',
-                            'updated_at' => '2025-11-17T13:00:00.000000Z'
-                        ]
-                    ],
-                    [
-                        'method' => 'PUT',
-                        'endpoint' => '/api/sectors/{id}',
-                        'description' => 'Update a sector',
-                        'headers' => [
-                            'X-API-Key' => 'your-api-key',
-                            'Content-Type' => 'application/json'
-                        ],
-                        'parameters' => [
-                            'id' => 'Sector ID'
-                        ],
-                        'body' => [
-                            'name' => 'Cardiology Updated',
-                            'description' => 'Cardiology department',
-                            'chief' => 'Dr. João Silva',
-                            'location' => 'Wing A, 2nd floor',
-                            'phone' => '(11) 99999-9999',
-                            'capacity' => 60,
-                            'active' => true
-                        ],
-                        'response' => [
-                            'id' => 1,
-                            'name' => 'Cardiology Updated',
-                            'description' => 'Cardiology department',
-                            'chief' => 'Dr. João Silva',
-                            'location' => 'Wing A, 2nd floor',
-                            'phone' => '(11) 99999-9999',
-                            'capacity' => 60,
-                            'active' => true,
-                            'created_at' => '2025-11-17T13:00:00.000000Z',
-                            'updated_at' => '2025-11-17T13:15:00.000000Z'
-                        ]
-                    ],
-                    [
-                        'method' => 'DELETE',
-                        'endpoint' => '/api/sectors/{id}',
-                        'description' => 'Delete a sector',
-                        'headers' => [
-                            'X-API-Key' => 'your-api-key'
-                        ],
-                        'parameters' => [
-                            'id' => 'Sector ID'
-                        ],
-                        'response' => [
-                            'message' => 'Sector deleted successfully'
+                            'data' => [
+                                'id' => 2,
+                                'name' => 'Neurology',
+                                'description' => 'Brain care department',
+                                'created_at' => '2025-11-14 10:00:00'
+                            ]
                         ]
                     ]
                 ]
@@ -1117,16 +1001,12 @@ class ApiDocumentationController extends Controller
                             'X-API-Key' => 'your-api-key'
                         ],
                         'response' => [
-                            [
-                                'id' => 1,
-                                'name' => 'Doctor',
-                                'description' => 'Medical doctor role',
-                                'chief' => 'Dr. João Silva',
-                                'sector' => 'Cardiology',
-                                'status' => 'active',
-                                'permissions' => ['/', '/temperature'],
-                                'created_at' => '2025-11-18T10:00:00.000000Z',
-                                'updated_at' => '2025-11-18T10:00:00.000000Z'
+                            'data' => [
+                                [
+                                    'id' => 1,
+                                    'name' => 'Doctor',
+                                    'description' => 'Medical doctor'
+                                ]
                             ]
                         ]
                     ],
@@ -1140,87 +1020,76 @@ class ApiDocumentationController extends Controller
                         ],
                         'body' => [
                             'name' => 'Nurse',
-                            'description' => 'Nursing staff',
-                            'sector' => 'Cardiology',
-                            'status' => 'active',
-                            'permissions' => ['/', '/temperature']
+                            'description' => 'Nursing staff'
                         ],
                         'response' => [
-                            'id' => 2,
-                            'name' => 'Nurse',
-                            'description' => 'Nursing staff',
-                            'chief' => 'Dr. João Silva',
-                            'sector' => 'Cardiology',
-                            'status' => 'active',
-                            'permissions' => ['/', '/temperature'],
-                            'created_at' => '2025-11-18T10:05:00.000000Z',
-                            'updated_at' => '2025-11-18T10:05:00.000000Z'
+                            'data' => [
+                                'id' => 2,
+                                'name' => 'Nurse',
+                                'description' => 'Nursing staff',
+                                'created_at' => '2025-11-14 10:00:00'
+                            ]
                         ]
-                    ],
+                    ]
+                ]
+            ],
+            [
+                'group' => 'Password Reset',
+                'routes' => [
                     [
-                        'method' => 'GET',
-                        'endpoint' => '/api/roles/{id}',
-                        'description' => 'Get a specific role by ID',
+                        'method' => 'POST',
+                        'endpoint' => '/api/password/reset-link',
+                        'description' => 'Send password reset link to user email (public)',
                         'headers' => [
-                            'X-API-Key' => 'your-api-key'
-                        ],
-                        'parameters' => [
-                            'id' => 'Role ID'
-                        ],
-                        'response' => [
-                            'id' => 1,
-                            'name' => 'Doctor',
-                            'description' => 'Medical doctor role',
-                            'chief' => 'Dr. João Silva',
-                            'sector' => 'Cardiology',
-                            'status' => 'active',
-                            'permissions' => ['/', '/temperature'],
-                            'created_at' => '2025-11-18T10:00:00.000000Z',
-                            'updated_at' => '2025-11-18T10:00:00.000000Z'
-                        ]
-                    ],
-                    [
-                        'method' => 'PUT',
-                        'endpoint' => '/api/roles/{id}',
-                        'description' => 'Update a role',
-                        'headers' => [
-                            'X-API-Key' => 'your-api-key',
                             'Content-Type' => 'application/json'
                         ],
-                        'parameters' => [
-                            'id' => 'Role ID'
-                        ],
                         'body' => [
-                            'name' => 'Senior Doctor',
-                            'description' => 'Senior medical doctor',
-                            'sector' => 'Cardiology',
-                            'status' => 'active',
-                            'permissions' => ['/', '/temperature', '/humidity']
+                            'email' => 'user@example.com'
                         ],
                         'response' => [
-                            'id' => 1,
-                            'name' => 'Senior Doctor',
-                            'description' => 'Senior medical doctor',
-                            'chief' => 'Dr. João Silva',
-                            'sector' => 'Cardiology',
-                            'status' => 'active',
-                            'permissions' => ['/', '/temperature', '/humidity'],
-                            'created_at' => '2025-11-18T10:00:00.000000Z',
-                            'updated_at' => '2025-11-18T10:10:00.000000Z'
+                            'message' => 'Password reset link sent to your email.'
                         ]
                     ],
                     [
-                        'method' => 'DELETE',
-                        'endpoint' => '/api/roles/{id}',
-                        'description' => 'Delete a role',
+                        'method' => 'POST',
+                        'endpoint' => '/api/password/reset',
+                        'description' => 'Reset user password with token (public)',
                         'headers' => [
-                            'X-API-Key' => 'your-api-key'
+                            'Content-Type' => 'application/json'
                         ],
-                        'parameters' => [
-                            'id' => 'Role ID'
+                        'body' => [
+                            'token' => 'reset-token-from-email',
+                            'email' => 'user@example.com',
+                            'password' => 'newpassword',
+                            'password_confirmation' => 'newpassword'
                         ],
                         'response' => [
-                            'message' => 'Role deleted'
+                            'message' => 'Password has been reset.'
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'group' => 'Email',
+                'routes' => [
+                    [
+                        'method' => 'POST',
+                        'endpoint' => '/api/send-email',
+                        'description' => 'Send custom email with attachments',
+                        'headers' => [
+                            'X-API-Key' => 'your-api-key',
+                            'Content-Type' => 'multipart/form-data'
+                        ],
+                        'body' => [
+                            'to[]' => 'recipient1@example.com',
+                            'to[]' => 'recipient2@example.com',
+                            'subject' => 'Email Subject',
+                            'body' => 'Email content here',
+                            'attachments[]' => 'file1.pdf',
+                            'attachments[]' => 'file2.jpg'
+                        ],
+                        'response' => [
+                            'message' => 'Email sent successfully.'
                         ]
                     ]
                 ]
