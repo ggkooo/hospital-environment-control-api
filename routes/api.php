@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\SectorController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\EmailController;
 
 // Rotas de documentação (sem autenticação)
 // Route::get('/docs', [DocumentationController::class, 'index'])->name('api.docs');
@@ -101,8 +102,14 @@ Route::middleware('api.key')->group(function () {
     // Rotas para roles
     Route::apiResource('roles', RoleController::class);
 
-
-    // Rota para recuperação de senha
-    Route::post('/password/reset-link', [PasswordResetController::class, 'sendResetLink'])
-        ->name('password.reset.link');
+    // Rota para envio de emails
+    Route::post('/send-email', [EmailController::class, 'send'])
+        ->name('email.send');
 });
+
+// Rotas públicas (sem autenticação)
+Route::post('/password/reset-link', [PasswordResetController::class, 'sendResetLink'])
+    ->name('password.reset.link');
+
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])
+    ->name('password.reset');
