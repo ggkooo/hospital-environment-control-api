@@ -9,10 +9,14 @@ use App\Http\Controllers\SectorController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\ApiDocumentationController;
+use App\Http\Controllers\AuthController;
 
 // Rotas de documentação (sem autenticação)
 Route::get('/docs', [ApiDocumentationController::class, 'index'])->name('api.docs');
 Route::get('/docs/{page}', [ApiDocumentationController::class, 'show'])->name('api.docs.page');
+
+// Rota de login
+Route::post('/login', [AuthController::class, 'login']);
 
 // Rota padrão do Sanctum (mantém autenticação original)
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
