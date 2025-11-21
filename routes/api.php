@@ -10,6 +10,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\ApiDocumentationController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AccessLogController;
 
 // Rotas de documentação (sem autenticação)
 Route::get('/docs', [ApiDocumentationController::class, 'index'])->name('api.docs');
@@ -110,6 +111,12 @@ Route::middleware('api.key')->group(function () {
     // Rota para envio de emails
     Route::post('/send-email', [EmailController::class, 'send'])
         ->name('email.send');
+
+    // Rotas para access logs
+    Route::get('/access-logs', [AccessLogController::class, 'index'])
+        ->name('access.logs.index');
+    Route::post('/access-logs', [AccessLogController::class, 'store'])
+        ->name('access.logs.store');
 });
 
 // Rotas públicas (sem autenticação)
