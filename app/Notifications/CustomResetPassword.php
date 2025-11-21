@@ -35,7 +35,7 @@ class CustomResetPassword extends Notification
      */
     public function toMail(object $notifiable)
     {
-        $url = 'http://localhost:5173/reset-password?token=' . $this->token;
+        $url = 'https://hec.giordanoberwig.xyz/reset-password?token=' . $this->token;
 
         return new \App\Mail\ResetPasswordMail($url, $notifiable);
     }
